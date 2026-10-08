@@ -32,7 +32,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-bottom: 70px; /* مساحة للشريط السفلي */
+  padding-bottom: 70px;
 }
 
 /* ===== Header ===== */
@@ -54,13 +54,14 @@ body {
   margin-bottom: 10px;
 }
 
-.logo {
+/* ===== Logo ===== */
 .logo {
   display: flex;
   align-items: center;
   gap: 8px;
   text-decoration: none;
   flex-shrink: 0;
+  max-width: 60%;
 }
 
 .logo img {
@@ -69,19 +70,18 @@ body {
   display: block;
   object-fit: contain;
   border-radius: 50%;
+  background: white;
+  padding: 2px;
+  flex-shrink: 0;
 }
 
 .logo-text {
   color: var(--accent);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: bold;
   white-space: nowrap;
-  font-family: 'Cairo', sans-serif;
-}
-
-.logo img:hover {
-  box-shadow: 0 4px 14px rgba(255, 153, 0, 0.6);
-  transform: scale(1.05);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-user {
@@ -90,6 +90,7 @@ body {
   display: flex;
   align-items: center;
   gap: 5px;
+  flex-shrink: 0;
 }
 
 .header-user strong {
@@ -727,9 +728,13 @@ body {
   .products-grid { grid-template-columns: repeat(3, 1fr); }
   .cat-icon { font-size: 32px; }
   .cat-name { font-size: 13px; }
+  .logo img { height: 45px; width: 45px; }
+  .logo-text { font-size: 20px; }
 }
 
 @media (min-width: 900px) {
   .products-grid { grid-template-columns: repeat(4, 1fr); }
   .search-bar input { font-size: 15px; }
+  .logo img { height: 50px; width: 50px; }
+  .logo-text { font-size: 22px; }
 }
