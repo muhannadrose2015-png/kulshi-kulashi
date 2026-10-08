@@ -62,12 +62,20 @@ body {
 }
 
 .logo img {
-  height: 55px;
-  width: auto;
+  height: 48px;
+  width: 48px;
   display: block;
-  margin: -10px 0;
+  border-radius: 50%;
   object-fit: cover;
-  border-radius: 8px;
+  background: white;
+  padding: 2px;
+  box-shadow: 0 2px 8px rgba(255, 153, 0, 0.4);
+  transition: 0.3s;
+}
+
+.logo img:hover {
+  box-shadow: 0 4px 14px rgba(255, 153, 0, 0.6);
+  transform: scale(1.05);
 }
 
 .header-user {
