@@ -1,0 +1,120 @@
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+
+body { background: #f0f2f5; color: #232f3e; min-height: 100vh; }
+
+/* شاشة الدخول */
+.login-screen {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #232f3e 0%, #37475a 100%);
+  z-index: 9999;
+}
+.login-box {
+  background: white; padding: 40px; border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  width: 90%; max-width: 400px; text-align: center;
+}
+.login-box h1 { margin-bottom: 10px; color: #232f3e; }
+.login-box p { color: #666; margin-bottom: 20px; font-size: 14px; }
+.login-box input {
+  width: 100%; padding: 14px; border: 2px solid #ddd;
+  border-radius: 8px; font-size: 16px; margin-bottom: 15px;
+  text-align: center; letter-spacing: 2px;
+}
+.login-box input:focus { outline: none; border-color: #ff9900; }
+.login-box button {
+  width: 100%; padding: 14px; background: #ff9900;
+  color: white; border: none; border-radius: 8px;
+  font-size: 16px; font-weight: bold; cursor: pointer;
+  font-family: inherit; transition: 0.3s;
+}
+.login-box button:hover { background: #e88a00; }
+.error-msg { color: #d32f2f; font-size: 14px; margin-top: 10px; min-height: 20px; }
+
+/* لوحة التحكم */
+.admin-panel { min-height: 100vh; }
+.admin-header {
+  background: #232f3e; color: white; padding: 20px 30px;
+  display: flex; justify-content: space-between; align-items: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+.admin-header h1 { font-size: 22px; }
+.btn-logout {
+  background: #d32f2f; color: white; border: none;
+  padding: 10px 20px; border-radius: 6px; cursor: pointer;
+  font-family: inherit; font-weight: bold;
+}
+.admin-content {
+  max-width: 1100px; margin: 30px auto; padding: 0 20px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+.card {
+  background: white; padding: 25px; border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.card h2 {
+  font-size: 18px; margin-bottom: 15px; color: #232f3e;
+  padding-bottom: 10px; border-bottom: 2px solid #ff9900;
+}
+.card p { color: #666; font-size: 14px; margin-bottom: 15px; }
+
+.status-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+.status-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 15px; background: #f8f9fa;
+  border-radius: 8px; border-right: 4px solid #ddd;
+}
+.status-item.ok { border-right-color: #4caf50; background: #f1f8f4; }
+.status-item.error { border-right-color: #d32f2f; background: #fdf2f2; }
+.status-icon { font-size: 20px; }
+.status-label { font-weight: bold; flex: 1; }
+.status-text { font-size: 13px; color: #666; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.stat-box { text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px; }
+.stat-number { font-size: 24px; font-weight: bold; color: #ff9900; }
+.stat-label { font-size: 12px; color: #666; margin-top: 5px; }
+
+.btn-primary, .btn-secondary, .btn-warning, .btn-danger {
+  padding: 12px 20px; border: none; border-radius: 8px;
+  font-family: inherit; font-size: 14px; font-weight: bold;
+  cursor: pointer; transition: 0.3s;
+}
+.btn-primary { background: #ff9900; color: white; width: 100%; }
+.btn-primary:hover { background: #e88a00; }
+.btn-secondary { background: #e7e9ec; color: #232f3e; width: 100%; margin-top: 10px; }
+.btn-secondary:hover { background: #d5d8dc; }
+.btn-warning { background: #ffc107; color: #232f3e; }
+.btn-danger { background: #d32f2f; color: white; }
+.btn-danger:hover { background: #b71c1c; }
+.tools-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+.test-result {
+  margin-top: 15px; padding: 12px; border-radius: 8px;
+  font-size: 14px; display: none;
+}
+.test-result.success {
+  display: block; background: #e8f5e9; color: #2e7d32;
+  border-right: 4px solid #4caf50;
+}
+.test-result.error {
+  display: block; background: #ffebee; color: #c62828;
+  border-right: 4px solid #d32f2f;
+}
+
+.info-table { width: 100%; font-size: 13px; }
+.info-table tr { border-bottom: 1px solid #eee; }
+.info-table td { padding: 10px 5px; }
+.info-table td:first-child { color: #666; width: 40%; }
+.info-table td:last-child {
+  font-weight: bold; word-break: break-all;
+  direction: ltr; text-align: left;
+}
+
+@media (max-width: 600px) {
+  .admin-header { padding: 15px; flex-direction: column; gap: 10px; }
+  .admin-header h1 { font-size: 16px; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .tools-grid { grid-template-columns: 1fr; }
+}
