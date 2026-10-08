@@ -55,22 +55,28 @@ body {
 }
 
 .logo {
+.logo {
   display: flex;
   align-items: center;
+  gap: 8px;
   text-decoration: none;
   flex-shrink: 0;
 }
 
 .logo img {
-  height: 48px;
-  width: 48px;
+  height: 40px;
+  width: 40px;
   display: block;
+  object-fit: contain;
   border-radius: 50%;
-  object-fit: cover;
-  background: white;
-  padding: 2px;
-  box-shadow: 0 2px 8px rgba(255, 153, 0, 0.4);
-  transition: 0.3s;
+}
+
+.logo-text {
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: bold;
+  white-space: nowrap;
+  font-family: 'Cairo', sans-serif;
 }
 
 .logo img:hover {
