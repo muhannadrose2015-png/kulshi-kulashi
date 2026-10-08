@@ -61,18 +61,16 @@ body {
   gap: 8px;
   text-decoration: none;
   flex-shrink: 0;
-  max-width: 60%;
+  max-width: 65%;
 }
 
 .logo img {
-  height: 40px;
-  width: 40px;
+  height: 45px;
+  width: 45px;
   display: block;
   object-fit: contain;
-  border-radius: 50%;
-  background: white;
-  padding: 2px;
   flex-shrink: 0;
+  border-radius: 50%;
 }
 
 .logo-text {
@@ -82,6 +80,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.2;
 }
 
 .header-user {
@@ -728,13 +727,13 @@ body {
   .products-grid { grid-template-columns: repeat(3, 1fr); }
   .cat-icon { font-size: 32px; }
   .cat-name { font-size: 13px; }
-  .logo img { height: 45px; width: 45px; }
+  .logo img { height: 50px; width: 50px; }
   .logo-text { font-size: 20px; }
 }
 
 @media (min-width: 900px) {
   .products-grid { grid-template-columns: repeat(4, 1fr); }
   .search-bar input { font-size: 15px; }
-  .logo img { height: 50px; width: 50px; }
+  .logo img { height: 55px; width: 55px; }
   .logo-text { font-size: 22px; }
 }
