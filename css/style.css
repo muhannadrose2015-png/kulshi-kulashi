@@ -62,9 +62,12 @@ body {
 }
 
 .logo img {
-  height: 42px;
+  height: 55px;
   width: auto;
   display: block;
+  margin: -10px 0;
+  object-fit: cover;
+  border-radius: 8px;
 }
 
 .header-user {
