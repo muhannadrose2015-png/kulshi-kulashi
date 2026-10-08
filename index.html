@@ -3,45 +3,122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#232f3e">
+<meta name="description" content="كلشي كلاشي - سوقك الإلكتروني للإعلانات المبوبة في العراق">
 <title>كلشي كلاشي - سوقك الإلكتروني</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
-  body {
-    background: linear-gradient(135deg, #232f3e 0%, #37475a 100%);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    text-align: center;
-    padding: 20px;
-  }
-  .container { max-width: 600px; }
-  h1 { font-size: 56px; color: #ff9900; margin-bottom: 20px; }
-  p { font-size: 20px; opacity: 0.85; margin-bottom: 15px; }
-  .badge {
-    display: inline-block;
-    background: #ff9900;
-    color: #232f3e;
-    padding: 8px 20px;
-    border-radius: 50px;
-    font-weight: bold;
-    margin-top: 20px;
-    font-size: 14px;
-  }
-  .footer { margin-top: 50px; font-size: 13px; opacity: 0.5; }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>🛒 كلشي كلاشي</h1>
-    <p>سوقك الإلكتروني للإعلانات المبوبة</p>
-    <p style="font-size: 15px; opacity: 0.6;">الموقع قيد الإنشاء...</p>
-    <div class="badge">🚀 قريباً</div>
-    <div class="footer">
-      © 2026 كلشي كلاشي - جميع الحقوق محفوظة
+
+<!-- الهيدر -->
+<header class="header">
+  <div class="header-top">
+    <a href="/" class="logo">🛒 كلشي كلاشي</a>
+    <div class="header-user" id="headerUser">...</div>
+  </div>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="ابحث عن منتج، مدينة، خدمة...">
+    <button onclick="doSearch()">🔍</button>
+  </div>
+</header>
+
+<!-- المحتوى الرئيسي -->
+<main class="container">
+
+  <!-- الأصناف -->
+  <h2 class="section-title">تسوق حسب الصنف</h2>
+  <div class="categories-grid" id="categoriesGrid">
+    <!-- تُعرض عبر JS -->
+  </div>
+
+  <!-- أحدث الإعلانات -->
+  <h2 class="section-title">🔥 أحدث الإعلانات</h2>
+  <div class="products-grid" id="latestProducts">
+    <div class="loading" style="grid-column: 1/-1;">
+      <div class="spinner"></div>
+      <p style="margin-top:10px;">جارٍ التحميل...</p>
     </div>
   </div>
+
+</main>
+
+<!-- زر إضافة إعلان (عائم) -->
+<a href="/add.html" class="add-btn" title="أضف إعلانك">+</a>
+
+<!-- شريط التنقل السفلي -->
+<nav class="bottom-nav">
+  <a href="/" class="nav-item active">
+    <span class="nav-icon">🏠</span>
+    <span>الرئيسية</span>
+  </a>
+  <a href="/category.html" class="nav-item">
+    <span class="nav-icon">📂</span>
+    <span>الأصناف</span>
+  </a>
+  <a href="/add.html" class="nav-item">
+    <span class="nav-icon">➕</span>
+    <span>إضافة</span>
+  </a>
+  <a href="/my-ads.html" class="nav-item">
+    <span class="nav-icon">📋</span>
+    <span>إعلاناتي</span>
+  </a>
+</nav>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">الرئيسية</a>
+    <a href="/add.html">أضف إعلان</a>
+    <a href="/my-ads.html">إعلاناتي</a>
+  </div>
+  <p>© 2026 كلشي كلاشي - جميع الحقوق محفوظة</p>
+</footer>
+
+<!-- تحميل السكربتات -->
+<script src="/js/storage.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/ban.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/products.js"></script>
+
+<script>
+/* ===== تشغيل الصفحة ===== */
+(async function init() {
+  // فحص الحظر أولاً
+  await Ban.checkPageAccess();
+
+  // عرض بيانات المستخدم في الهيدر
+  Auth.renderUserHeader();
+
+  // إذا لم يكن مسجلاً، اطلب التسجيل
+  await Auth.requireRegistration();
+
+  // إعادة عرض البيانات بعد التسجيل
+  Auth.renderUserHeader();
+
+  // تحميل الإعلانات والأصناف
+  await Products.initHomePage();
+})();
+
+/* ===== البحث ===== */
+function doSearch() {
+  const query = document.getElementById('searchInput').value.trim();
+  if (query.length < 2) {
+    App.toast('اكتب على الأقل حرفين للبحث', 'info');
+    return;
+  }
+  window.location.href = '/category.html?q=' + encodeURIComponent(query);
+}
+
+// البحث عند الضغط على Enter
+document.getElementById('searchInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') doSearch();
+});
+</script>
+
 </body>
 </html>
