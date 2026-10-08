@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>⚙️ لوحة التحكم</title>
+<link rel="stylesheet" href="/css/admin.css">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- شاشة كلمة المرور -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <h1>🔒 لوحة التحكم</h1>
+    <p>أدخل كلمة المرور للمتابعة</p>
+    <input type="password" id="passwordInput" placeholder="كلمة المرور" autofocus>
+    <button onclick="tryLogin()">دخول</button>
+    <p id="loginError" class="error-msg"></p>
+  </div>
+</div>
+
+<!-- لوحة التحكم -->
+<div id="adminPanel" class="admin-panel" style="display:none;">
+  
+  <header class="admin-header">
+    <h1>⚙️ لوحة تحكم كلشي كلاشي</h1>
+    <button onclick="logout()" class="btn-logout">خروج</button>
+  </header>
+
+  <div class="admin-content">
+
+    <section class="card">
+      <h2>📊 حالة الاتصالات</h2>
+      <div class="status-grid">
+        <div class="status-item" id="statusGithub">
+          <span class="status-icon">⏳</span>
+          <span class="status-label">GitHub</span>
+          <span class="status-text">جارٍ الفحص...</span>
+        </div>
+        <div class="status-item" id="statusTelegram">
+          <span class="status-icon">⏳</span>
+          <span class="status-label">Telegram</span>
+          <span class="status-text">جارٍ الفحص...</span>
+        </div>
+        <div class="status-item" id="statusData">
+          <span class="status-icon">⏳</span>
+          <span class="status-label">البيانات</span>
+          <span class="status-text">جارٍ الفحص...</span>
+        </div>
+      </div>
+      <button onclick="checkStatus()" class="btn-secondary">🔄 إعادة الفحص</button>
+    </section>
+
+    <section class="card">
+      <h2>🧪 اختبار الإرسال</h2>
+      <p>أرسل رسالة تجريبية إلى تليجرام للتأكد من عمل البوت</p>
+      <button onclick="testTelegram()" class="btn-primary">📤 إرسال رسالة تجريبية</button>
+      <p id="testResult" class="test-result"></p>
+    </section>
+
+    <section class="card">
+      <h2>📈 الإحصائيات المحلية</h2>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-number" id="statUser">-</div>
+          <div class="stat-label">المستخدم الحالي</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="statMyOrders">-</div>
+          <div class="stat-label">طلباتي</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="statCachedAds">-</div>
+          <div class="stat-label">إعلانات محفوظة</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>🧹 أدوات</h2>
+      <div class="tools-grid">
+        <button onclick="exportData()" class="btn-secondary">📥 تصدير البيانات</button>
+        <button onclick="clearMyOrders()" class="btn-warning">🗑️ مسح طلباتي</button>
+        <button onclick="clearUser()" class="btn-danger">🚪 تسجيل خروج المستخدم</button>
+        <button onclick="clearAll()" class="btn-danger">💥 مسح كل البيانات</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ℹ️ معلومات النظام</h2>
+      <table class="info-table">
+        <tr><td>الإصدار</td><td id="infoVersion">1.0.0</td></tr>
+        <tr><td>المستودع</td><td id="infoRepo">-</td></tr>
+        <tr><td>الرابط الحالي</td><td id="infoUrl">-</td></tr>
+        <tr><td>المتصفح</td><td id="infoBrowser">-</td></tr>
+        <tr><td>الوقت</td><td id="infoTime">-</td></tr>
+      </table>
+    </section>
+
+  </div>
+</div>
+
+<script src="/js/storage.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>
