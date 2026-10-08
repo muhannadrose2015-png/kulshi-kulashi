@@ -1,1 +1,75 @@
-[]
+[
+  {
+    "id": "kk_demo_001",
+    "title": "آيفون 15 برو ماكس - نظيف جداً",
+    "category": "electronics",
+    "price": 1200000,
+    "currency": "IQD",
+    "description": "جهاز آيفون 15 برو ماكس، ذاكرة 256GB، لون تيتانيوم طبيعي.\nالجهاز نظيف جداً بدون خدوش، مع كامل ملحقاته.\nضمان سنة من الوكيل.",
+    "images": [
+      "https://images.unsplash.com/photo-1592286927505-1def25115558?w=600&q=80",
+      "https://images.unsplash.com/photo-1696446702183-b3d65b0e6ee2?w=600&q=80"
+    ],
+    "city": "بغداد",
+    "whatsapp": "9647700000000",
+    "ownerName": "علي محمد",
+    "ownerPhone": "07700000000",
+    "status": "active",
+    "views": 0,
+    "createdAt": "2026-10-09T10:00:00Z"
+  },
+  {
+    "id": "kk_demo_002",
+    "title": "لابتوب Dell XPS 15 للبيع",
+    "category": "electronics",
+    "price": 850000,
+    "currency": "IQD",
+    "description": "لابتوب Dell XPS 15، معالج i7، رام 16GB، هارد SSD 512GB.\nمستخدم سنة فقط، بحالة ممتازة.\nمع حافظة أصلية.",
+    "images": [
+      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&q=80"
+    ],
+    "city": "أربيل",
+    "whatsapp": "9647700000001",
+    "ownerName": "سارة أحمد",
+    "ownerPhone": "07700000001",
+    "status": "active",
+    "views": 0,
+    "createdAt": "2026-10-09T09:00:00Z"
+  },
+  {
+    "id": "kk_demo_003",
+    "title": "قميص رجالي قطن - جديد",
+    "category": "fashion",
+    "price": 25000,
+    "currency": "IQD",
+    "description": "قميص رجالي قطن 100%، مقاسات مختلفة متوفرة.\nألوان متعددة. جودة عالية.",
+    "images": [
+      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&q=80"
+    ],
+    "city": "البصرة",
+    "whatsapp": "9647700000002",
+    "ownerName": "متجر الأناقة",
+    "ownerPhone": "07700000002",
+    "status": "active",
+    "views": 0,
+    "createdAt": "2026-10-09T08:00:00Z"
+  },
+  {
+    "id": "kk_demo_004",
+    "title": "كنبة 3 مقاعد - جلد طبيعي",
+    "category": "furniture",
+    "price": 450000,
+    "currency": "IQD",
+    "description": "كنبة فاخرة 3 مقاعد، جلد طبيعي.\nلون بني، حالة ممتازة.\nالتسليم في بغداد فقط.",
+    "images": [
+      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80"
+    ],
+    "city": "بغداد",
+    "whatsapp": "9647700000003",
+    "ownerName": "معرض الأثاث",
+    "ownerPhone": "07700000003",
+    "status": "active",
+    "views": 0,
+    "createdAt": "2026-10-09T07:00:00Z"
+  }
+]
