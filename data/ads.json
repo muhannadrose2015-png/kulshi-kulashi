@@ -37,24 +37,6 @@
     "createdAt": "2026-10-09T09:00:00Z"
   },
   {
-    "id": "kk_demo_003",
-    "title": "قميص رجالي قطن - جديد",
-    "category": "fashion",
-    "price": 25000,
-    "currency": "IQD",
-    "description": "قميص رجالي قطن 100%، مقاسات مختلفة متوفرة.\nألوان متعددة. جودة عالية.",
-    "images": [
-      "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&q=80"
-    ],
-    "city": "البصرة",
-    "whatsapp": "9647700000002",
-    "ownerName": "متجر الأناقة",
-    "ownerPhone": "07700000002",
-    "status": "active",
-    "views": 0,
-    "createdAt": "2026-10-09T08:00:00Z"
-  },
-  {
     "id": "kk_demo_004",
     "title": "كنبة 3 مقاعد - جلد طبيعي",
     "category": "furniture",
