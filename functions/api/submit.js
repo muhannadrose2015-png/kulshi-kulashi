@@ -78,9 +78,19 @@ export async function onRequest(context) {
       };
     }
     /* ===== إبلاغ عن إعلان ===== */
-    else if (action === 'report') {
-      message = formatReport(data);
-    }
+else if (action === 'report') {
+  message = formatReport(data);
+
+  // أزرار: حذف الإعلان أو تجاهل الإبلاغ
+  replyMarkup = {
+    inline_keyboard: [
+      [
+        { text: '🗑️ حذف الإعلان', callback_data: `delete_ad_${data.productId}` },
+        { text: '✅ تجاهل الإبلاغ', callback_data: `dismiss_report_${data.productId}` }
+      ]
+    ]
+  };
+}
     /* ===== طلب حذف ===== */
     else if (action === 'delete_request') {
       // حذف الإعلان المعلّق من KV (إن وُجد)
