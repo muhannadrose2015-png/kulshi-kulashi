@@ -737,3 +737,18 @@ body {
   .logo img { height: 55px; width: 55px; }
   .logo-text { font-size: 22px; }
 }
+
+/* ===== Views Badge ===== */
+.views-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: bold;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+}
