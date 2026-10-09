@@ -241,14 +241,20 @@
 <script>
 /* ===== تشغيل الصفحة ===== */
 (async function init() {
-  await Ban.checkPageAccess();
-  Auth.renderUserHeader();
-  await Auth.requireRegistration();
-  Auth.renderUserHeader();
-
-  await renderMyAds();
+  try {
+    await Ban.checkPageAccess();
+    Auth.renderUserHeader();
+    await Auth.requireRegistration();
+    Auth.renderUserHeader();
+    await renderMyAds();
+  } catch (e) {
+    console.error('Init error:', e);
+    const container = document.getElementById('ordersList');
+    container.innerHTML = '<div class="empty-state"><p>حدث خطأ في التحميل</p></div>';
+  }
 })();
 
+/* ===== عرض إعلاناتي ===== */
 async function renderMyAds() {
   const container = document.getElementById('ordersList');
 
@@ -319,12 +325,10 @@ async function syncOrderStatuses() {
     const orders = KK.getMyOrders();
     if (orders.length === 0) return;
 
-    // تحميل ads.json
     const allAds = await Products.loadAll(true);
     let changed = false;
 
     orders.forEach(order => {
-      // إذا كان الطلب معلقاً، نتحقق إن كان منشوراً
       if (order.status === 'pending') {
         const published = allAds.find(ad =>
           ad.orderCode === order.code ||
@@ -339,69 +343,12 @@ async function syncOrderStatuses() {
       }
     });
 
-    // حفظ التغييرات
     if (changed) {
       localStorage.setItem(KK.KEYS.MY_ORDERS, JSON.stringify(orders));
     }
   } catch (e) {
     console.error('syncOrderStatuses error:', e);
   }
-}
-
-  // إحصائيات
-  const total = orders.length;
-  const pending = orders.filter(o => o.status === 'pending').length;
-  const approved = orders.filter(o => o.status === 'approved').length;
-
-  document.getElementById('statTotal').textContent = total;
-  document.getElementById('statPending').textContent = pending;
-  document.getElementById('statApproved').textContent = approved;
-
-  if (orders.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">📭</div>
-        <h3>لا توجد إعلانات بعد</h3>
-        <p>ابدأ بإضافة أول إعلان لك</p>
-        <a href="/add.html" class="btn btn-primary" style="margin-top:15px;">➕ أضف إعلانك الآن</a>
-      </div>
-    `;
-    return;
-  }
-
-  container.innerHTML = orders.map(order => {
-    const img = (order.images && order.images[0])
-      ? order.images[0]
-      : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23999">📷</text></svg>';
-
-    const price = App.formatPrice(order.price, order.currency);
-    const statusInfo = getStatusInfo(order.status);
-
-    return `
-      <div class="order-card">
-        <img src="${img}" class="order-image" alt="${App.escapeHTML(order.title)}">
-        <div class="order-info">
-          <div class="order-title">${App.escapeHTML(order.title)}</div>
-          <div class="order-price">${price}</div>
-          <div class="order-meta">
-            📍 ${App.escapeHTML(order.city || '')} • 🕐 ${App.formatDate(order.submittedAt)}
-          </div>
-          <div class="order-code-row">
-            <span>رقم الطلب:</span>
-            <span class="order-code-badge">${order.code}</span>
-          </div>
-          <div class="order-status ${statusInfo.class}">
-            ${statusInfo.icon} ${statusInfo.text}
-          </div>
-          <div class="order-actions">
-            <button class="btn-view" onclick="viewOrder('${order.code}')">👁️ عرض</button>
-            <button class="btn-track" onclick="trackOrder('${order.code}')">🔍 تتبع</button>
-            <button class="btn-delete" onclick="Submit.deleteOrder('${order.code}')">🗑️ حذف</button>
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
 }
 
 /* ===== حالة الطلب ===== */
