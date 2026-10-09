@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#8b0000">
+<meta name="robots" content="noindex, nofollow">
+<title>محظور - كلشي كلاشي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Cairo', sans-serif;
+  }
+
+  body {
+    background: linear-gradient(135deg, #8b0000 0%, #4a0000 100%);
+    color: white;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .ban-container {
+    max-width: 420px;
+    width: 100%;
+  }
+
+  .ban-icon {
+    font-size: 100px;
+    margin-bottom: 20px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  h1 {
+    font-size: 28px;
+    margin-bottom: 15px;
+    color: #ffcccb;
+  }
+
+  .ban-message {
+    font-size: 15px;
+    line-height: 1.8;
+    opacity: 0.9;
+    margin-bottom: 25px;
+  }
+
+  .reason-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 25px;
+  }
+
+  .reason-label {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-bottom: 8px;
+  }
+
+  .reason-text {
+    font-size: 15px;
+    font-weight: bold;
+    color: #ffcccb;
+  }
+
+  .contact-info {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 20px;
+  }
+
+  .contact-info h3 {
+    font-size: 15px;
+    margin-bottom: 10px;
+    color: #ffcccb;
+  }
+
+  .contact-info p {
+    font-size: 13px;
+    opacity: 0.85;
+    line-height: 1.7;
+  }
+
+  .contact-info a {
+    color: #ffcccb;
+    font-weight: bold;
+    text-decoration: underline;
+  }
+
+  .footer-note {
+    font-size: 11px;
+    opacity: 0.5;
+    margin-top: 30px;
+  }
+</style>
+</head>
+<body>
+
+<div class="ban-container">
+  <div class="ban-icon">🚫</div>
+  <h1>أنت محظور</h1>
+
+  <div class="ban-message">
+    تم حظر حسابك من استخدام موقع <strong>كلشي كلاشي</strong><br>
+    بسبب مخالفة شروط الاستخدام
+  </div>
+
+  <div class="reason-box" id="reasonBox" style="display:none;">
+    <div class="reason-label">السبب:</div>
+    <div class="reason-text" id="reasonText"></div>
+  </div>
+
+  <div class="contact-info">
+    <h3>📩 إذا كنت تعتقد أن هذا خطأ</h3>
+    <p>
+      تواصل معنا عبر البوت في تليجرام:<br>
+      <a href="https://t.me/Baya33bot" target="_blank">@Baya33bot</a>
+    </p>
+  </div>
+
+  <div class="footer-note">
+    © 2026 كلشي كلاشي - جميع الحقوق محفوظة
+  </div>
+</div>
+
+<script src="/js/storage.js"></script>
+<script src="/js/app.js"></script>
+
+<script>
+/* ===== عرض بيانات المستخدم المحظور (إن وُجدت) ===== */
+(async function init() {
+  // إذا كان هناك سبب في الرابط، اعرضه
+  const reason = App.getURLParam('reason');
+  if (reason) {
+    document.getElementById('reasonBox').style.display = 'block';
+    document.getElementById('reasonText').textContent = decodeURIComponent(reason);
+  }
+
+  // إذا كان هناك مستخدم محلي، حاول حذف بياناته (اختياري)
+  // (لا نحذف تلقائياً حتى لا يستطيع العودة بإعادة التسجيل)
+})();
+</script>
+
+</body>
+</html>
