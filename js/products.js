@@ -241,13 +241,16 @@ const Products = {
           ` : ''}
 
           <div class="product-actions">
-            <a href="${waLink}" target="_blank" class="btn btn-whatsapp">
-              💬 تواصل عبر واتساب
-            </a>
-            <button class="btn btn-report" onclick="Products.reportProduct('${product.id}')">
-              ⚠️ إبلاغ
-            </button>
-          </div>
+  <a href="${waLink}" target="_blank" class="btn btn-whatsapp">
+    💬 تواصل عبر واتساب
+  </a>
+  <button class="btn btn-report" onclick="Products.shareProduct('${product.id}')">
+    📤 مشاركة
+  </button>
+  <button class="btn btn-report" onclick="Products.reportProduct('${product.id}')">
+    ⚠️ إبلاغ
+  </button>
+</div>
         </div>
       </div>
     `;
@@ -287,6 +290,36 @@ const Products = {
     `;
   },
 
+   /* مشاركة المنتج */
+async shareProduct(productId) {
+  const product = await this.getById(productId);
+  if (!product) return;
+
+  const url = window.location.href;
+  const text = `🛒 ${product.title}\n💰 ${App.formatPrice(product.price, product.currency)}\n\nشاهد على كلشي كلاشي:`;
+
+  if (navigator.share) {
+    // مشاركة عبر Web Share API (يعمل على الجوال)
+    try {
+      await navigator.share({
+        title: product.title,
+        text: text,
+        url: url
+      });
+    } catch (e) {
+      // المستخدم ألغى المشاركة - لا نفعل شيئاً
+    }
+  } else {
+    // نسخ الرابط كبديل
+    try {
+      await navigator.clipboard.writeText(url);
+      App.toast('✅ تم نسخ الرابط', 'success');
+    } catch (e) {
+      App.toast('انسخ الرابط يدوياً: ' + url, 'info');
+    }
+  }
+},
+   
   /* الإبلاغ عن منتج */
   async reportProduct(productId) {
     if (!confirm('هل تريد الإبلاغ عن هذا الإعلان؟')) return;
