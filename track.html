@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#232f3e">
+<title>تتبع الطلب - كلشي كلاشي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .track-box {
+    background: white;
+    border-radius: 12px;
+    padding: 25px 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 15px;
+  }
+
+  .track-input {
+    width: 100%;
+    padding: 14px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: inherit;
+    outline: none;
+    text-align: center;
+    letter-spacing: 2px;
+    direction: ltr;
+    font-weight: bold;
+    margin-bottom: 12px;
+    transition: 0.2s;
+  }
+
+  .track-input:focus {
+    border-color: var(--accent);
+  }
+
+  .track-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .track-btn:active {
+    background: #e88a00;
+  }
+
+  /* ===== النتيجة ===== */
+  .track-result {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: none;
+  }
+
+  .result-header {
+    text-align: center;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 15px;
+  }
+
+  .result-icon {
+    font-size: 60px;
+    margin-bottom: 10px;
+  }
+
+  .result-status {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+
+  .result-status.pending { color: #856404; }
+  .result-status.approved { color: #155724; }
+  .result-status.rejected { color: #721c24; }
+
+  .result-code {
+    font-size: 14px;
+    color: var(--text-light);
+    font-family: monospace;
+    direction: ltr;
+  }
+
+  .result-details {
+    margin-top: 15px;
+  }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+  }
+
+  .detail-row:last-child {
+    border-bottom: none;
+  }
+
+  .detail-label {
+    color: var(--text-light);
+    font-weight: bold;
+  }
+
+  .detail-value {
+    color: var(--primary);
+    text-align: left;
+    direction: ltr;
+    word-break: break-word;
+    max-width: 60%;
+  }
+
+  /* ===== أزرار المساعدة ===== */
+  .help-box {
+    background: #fff9f0;
+    border: 2px dashed var(--accent);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 15px;
+    text-align: center;
+  }
+
+  .help-box-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+  }
+
+  .help-box h3 {
+    color: var(--primary);
+    margin-bottom: 8px;
+    font-size: 16px;
+  }
+
+  .help-box p {
+    color: var(--text-light);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  /* ===== مؤشر الحالة ===== */
+  .status-steps {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0;
+    position: relative;
+  }
+
+  .status-steps::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    right: 15%;
+    left: 15%;
+    height: 3px;
+    background: #e0e0e0;
+    z-index: 0;
+  }
+
+  .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    z-index: 1;
+    flex: 1;
+  }
+
+  .step-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    color: #999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    border: 3px solid white;
+  }
+
+  .step.active .step-circle {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 0 0 4px rgba(255, 153, 0, 0.2);
+  }
+
+  .step.done .step-circle {
+    background: var(--success);
+    color: white;
+  }
+
+  .step-label {
+    font-size: 11px;
+    color: var(--text-light);
+    font-weight: bold;
+    text-align: center;
+  }
+
+  .step.active .step-label {
+    color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<!-- الهيدر -->
+<header class="header">
+  <div class="header-top">
+    <a href="/" class="logo">
+      <img src="/images/logo.png" alt="كلشي كلاشي">
+      <span class="logo-text">كلشي كلاشي</span>
+    </a>
+    <div class="header-user" id="headerUser">...</div>
+  </div>
+</header>
+
+<!-- المحتوى -->
+<main class="container">
+
+  <div class="page-header">
+    <a href="/" class="back-btn">→</a>
+    <h1>🔍 تتبع طلبك</h1>
+  </div>
+
+  <!-- نموذج البحث -->
+  <div class="track-box">
+    <p style="text-align:center; color:#666; font-size:14px; margin-bottom:15px;">
+      أدخل رقم الطلب الذي حصلت عليه عند إرسال الإعلان
+    </p>
+    <input 
+      type="text" 
+      id="trackInput" 
+      class="track-input" 
+      placeholder="KK-2026-0000"
+      maxlength="15"
+    >
+    <button class="track-btn" onclick="trackOrder()">🔍 تتبع الطلب</button>
+  </div>
+
+  <!-- نتيجة البحث -->
+  <div class="track-result" id="trackResult"></div>
+
+  <!-- صندوق المساعدة -->
+  <div class="help-box" id="helpBox">
+    <div class="help-box-icon">💡</div>
+    <h3>لم تجد رقم طلبك؟</h3>
+    <p>
+      رقم الطلب يظهر لك عند إرسال الإعلان<br>
+      يمكنك أيضاً العثور عليه في صفحة <a href="/my-ads.html" style="color:var(--accent);font-weight:bold;">إعلاناتي</a>
+    </p>
+  </div>
+
+</main>
+
+<!-- شريط التنقل السفلي -->
+<nav class="bottom-nav">
+  <a href="/" class="nav-item">
+    <span class="nav-icon">🏠</span>
+    <span>الرئيسية</span>
+  </a>
+  <a href="/category.html" class="nav-item">
+    <span class="nav-icon">📂</span>
+    <span>الأصناف</span>
+  </a>
+  <a href="/add.html" class="nav-item">
+    <span class="nav-icon">➕</span>
+    <span>إضافة</span>
+  </a>
+  <a href="/my-ads.html" class="nav-item">
+    <span class="nav-icon">📋</span>
+    <span>إعلاناتي</span>
+  </a>
+</nav>
+
+<!-- تحميل السكربتات -->
+<script src="/js/storage.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/ban.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/products.js"></script>
+
+<script>
+/* ===== تشغيل الصفحة ===== */
+(async function init() {
+  await Ban.checkPageAccess();
+  Auth.renderUserHeader();
+
+  // إذا كان هناك code في الرابط، ابحث تلقائياً
+  const code = App.getURLParam('code');
+  if (code) {
+    document.getElementById('trackInput').value = code;
+    setTimeout(() => trackOrder(), 300);
+  }
+
+  // Enter للبحث
+  document.getElementById('trackInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') trackOrder();
+  });
+})();
+
+/* ===== تتبع الطلب ===== */
+async function trackOrder() {
+  const input = document.getElementById('trackInput').value.trim().toUpperCase();
+  const resultEl = document.getElementById('trackResult');
+  const helpBox = document.getElementById('helpBox');
+
+  if (!input) {
+    App.toast('أدخل رقم الطلب', 'info');
+    return;
+  }
+
+  // البحث في الطلبات المحلية
+  const orders = KK.getMyOrders();
+  let order = orders.find(o => o.code.toUpperCase() === input);
+
+  // إذا لم يوجد محلياً، ابحث في ads.json
+  if (!order) {
+    const allAds = await Products.loadAll();
+    const publishedAd = allAds.find(a => a.orderCode && a.orderCode.toUpperCase() === input);
+
+    if (publishedAd) {
+      order = {
+        code: publishedAd.orderCode,
+        title: publishedAd.title,
+        category: publishedAd.category,
+        price: publishedAd.price,
+        currency: publishedAd.currency,
+        description: publishedAd.description,
+        city: publishedAd.city,
+        images: publishedAd.images,
+        status: 'approved',
+        submittedAt: publishedAd.createdAt,
+        publishedAt: publishedAd.publishedAt
+      };
+    }
+  }
+
+  if (!order) {
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `
+      <div class="result-header">
+        <div class="result-icon">❓</div>
+        <div class="result-status" style="color:#999;">لم يتم العثور على الطلب</div>
+        <div class="result-code">${App.escapeHTML(input)}</div>
+      </div>
+      <p style="text-align:center; color:#666; font-size:13px; padding:15px;">
+        تأكد من كتابة رقم الطلب بشكل صحيح، أو ابحث في صفحة "إعلاناتي"
+      </p>
+    `;
+    helpBox.style.display = 'block';
+    return;
+  }
+
+  // عرض النتيجة
+  helpBox.style.display = 'none';
+  resultEl.style.display = 'block';
+  renderOrderDetails(order);
+}
+
+/* ===== عرض تفاصيل الطلب ===== */
+function renderOrderDetails(order) {
+  const resultEl = document.getElementById('trackResult');
+  const statusInfo = getStatusInfo(order.status);
+  const price = App.formatPrice(order.price, order.currency);
+
+  // حساب مرحلة الحالة
+  const stepIndex = order.status === 'pending' ? 2 : order.status === 'approved' ? 3 : 2;
+
+  resultEl.innerHTML = `
+    <div class="result-header">
+      <div class="result-icon">${statusInfo.icon}</div>
+      <div class="result-status ${order.status}">${statusInfo.text}</div>
+      <div class="result-code">${order.code}</div>
+    </div>
+
+    <!-- خطوات الحالة -->
+    <div class="status-steps">
+      <div class="step done">
+        <div class="step-circle">✓</div>
+        <div class="step-label">تم الإرسال</div>
+      </div>
+      <div class="step ${stepIndex === 2 ? 'active' : stepIndex > 2 ? 'done' : ''}">
+        <div class="step-circle">${stepIndex > 2 ? '✓' : '2'}</div>
+        <div class="step-label">قيد المراجعة</div>
+      </div>
+      <div class="step ${stepIndex === 3 ? 'active' : ''}">
+        <div class="step-circle">${stepIndex === 3 ? '✓' : '3'}</div>
+        <div class="step-label">${order.status === 'approved' ? 'منشور' : 'النشر'}</div>
+      </div>
+    </div>
+
+    <!-- التفاصيل -->
+    <div class="result-details">
+      <div class="detail-row">
+        <span class="detail-label">📦 العنوان</span>
+        <span class="detail-value">${App.escapeHTML(order.title)}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">💰 السعر</span>
+        <span class="detail-value">${price}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">📍 المدينة</span>
+        <span class="detail-value">${App.escapeHTML(order.city || 'غير محدد')}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">🕐 تاريخ الإرسال</span>
+        <span class="detail-value">${App.formatDate(order.submittedAt)}</span>
+      </div>
+      ${order.status === 'approved' && order.publishedAt ? `
+        <div class="detail-row">
+          <span class="detail-label">✅ تاريخ النشر</span>
+          <span class="detail-value">${App.formatDate(order.publishedAt)}</span>
+        </div>
+      ` : ''}
+    </div>
+
+    ${order.status === 'approved' ? `
+      <a href="/my-ads.html" class="btn btn-primary btn-full" style="margin-top:15px;">📋 عرض في إعلاناتي</a>
+    ` : `
+      <div style="text-align:center; padding:15px; background:#fff9f0; border-radius:8px; margin-top:15px;">
+        <p style="font-size:13px; color:#856404;">
+          ⏳ سيتم مراجعة إعلانك من قبل الإدارة ونشره قريباً
+        </p>
+      </div>
+    `}
+  `;
+}
+
+/* ===== حالة الطلب ===== */
+function getStatusInfo(status) {
+  switch (status) {
+    case 'approved':
+      return { icon: '✅', text: 'تم النشر' };
+    case 'rejected':
+      return { icon: '❌', text: 'تم الرفض' };
+    default:
+      return { icon: '⏳', text: 'قيد المراجعة' };
+  }
+}
+</script>
+
+</body>
+</html>
