@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#232f3e">
+<title>إعلاناتي - كلشي كلاشي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .order-card {
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .order-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #f0f0f0;
+    flex-shrink: 0;
+  }
+
+  .order-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .order-title {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .order-price {
+    font-size: 15px;
+    font-weight: bold;
+    color: #b12704;
+    margin-bottom: 5px;
+  }
+
+  .order-meta {
+    font-size: 11px;
+    color: var(--text-light);
+    margin-bottom: 8px;
+  }
+
+  .order-code-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+
+  .order-code-badge {
+    background: #fff9f0;
+    color: var(--accent);
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-family: monospace;
+    font-weight: bold;
+    border: 1px solid #ffe0b2;
+    direction: ltr;
+  }
+
+  .order-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+  }
+
+  .status-pending {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .status-approved {
+    background: #d4edda;
+    color: #155724;
+  }
+
+  .status-rejected {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
+  .order-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .order-actions button {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: inherit;
+    transition: 0.2s;
+  }
+
+  .btn-view {
+    background: #e7e9ec;
+    color: var(--primary);
+  }
+
+  .btn-delete {
+    background: #ffebee;
+    color: var(--danger);
+  }
+
+  .stats-bar {
+    background: var(--primary);
+    color: white;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+  }
+
+  .stat-item {
+    flex: 1;
+  }
+
+  .stat-value {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--accent);
+  }
+
+  .stat-label {
+    font-size: 11px;
+    opacity: 0.8;
+    margin-top: 3px;
+  }
+</style>
+</head>
+<body>
+
+<!-- الهيدر -->
+<header class="header">
+  <div class="header-top">
+    <a href="/" class="logo">
+      <img src="/images/logo.png" alt="كلشي كلاشي">
+      <span class="logo-text">كلشي كلاشي</span>
+    </a>
+    <div class="header-user" id="headerUser">...</div>
+  </div>
+</header>
+
+<!-- المحتوى -->
+<main class="container">
+
+  <div class="page-header">
+    <a href="/" class="back-btn">→</a>
+    <h1>📋 إعلاناتي</h1>
+  </div>
+
+  <!-- شريط الإحصائيات -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-item">
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-label">الكل</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="statPending">0</div>
+      <div class="stat-label">قيد المراجعة</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" id="statApproved">0</div>
+      <div class="stat-label">منشورة</div>
+    </div>
+  </div>
+
+  <!-- قائمة الطلبات -->
+  <div id="ordersList">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p style="margin-top:10px;">جارٍ التحميل...</p>
+    </div>
+  </div>
+
+</main>
+
+<!-- شريط التنقل السفلي -->
+<nav class="bottom-nav">
+  <a href="/" class="nav-item">
+    <span class="nav-icon">🏠</span>
+    <span>الرئيسية</span>
+  </a>
+  <a href="/category.html" class="nav-item">
+    <span class="nav-icon">📂</span>
+    <span>الأصناف</span>
+  </a>
+  <a href="/add.html" class="nav-item">
+    <span class="nav-icon">➕</span>
+    <span>إضافة</span>
+  </a>
+  <a href="/my-ads.html" class="nav-item active">
+    <span class="nav-icon">📋</span>
+    <span>إعلاناتي</span>
+  </a>
+</nav>
+
+<!-- تحميل السكربتات -->
+<script src="/js/storage.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/ban.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/products.js"></script>
+<script src="/js/submit.js"></script>
+
+<script>
+/* ===== تشغيل الصفحة ===== */
+(async function init() {
+  await Ban.checkPageAccess();
+  Auth.renderUserHeader();
+  await Auth.requireRegistration();
+  Auth.renderUserHeader();
+
+  await renderMyAds();
+})();
+
+/* ===== عرض إعلاناتي ===== */
+async function renderMyAds() {
+  const container = document.getElementById('ordersList');
+  const orders = KK.getMyOrders();
+
+  // إحصائيات
+  const total = orders.length;
+  const pending = orders.filter(o => o.status === 'pending').length;
+  const approved = orders.filter(o => o.status === 'approved').length;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statApproved').textContent = approved;
+
+  if (orders.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📭</div>
+        <h3>لا توجد إعلانات بعد</h3>
+        <p>ابدأ بإضافة أول إعلان لك</p>
+        <a href="/add.html" class="btn btn-primary" style="margin-top:15px;">➕ أضف إعلانك الآن</a>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = orders.map(order => {
+    const img = (order.images && order.images[0])
+      ? order.images[0]
+      : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23999">📷</text></svg>';
+
+    const price = App.formatPrice(order.price, order.currency);
+    const statusInfo = getStatusInfo(order.status);
+
+    return `
+      <div class="order-card">
+        <img src="${img}" class="order-image" alt="${App.escapeHTML(order.title)}">
+        <div class="order-info">
+          <div class="order-title">${App.escapeHTML(order.title)}</div>
+          <div class="order-price">${price}</div>
+          <div class="order-meta">
+            📍 ${App.escapeHTML(order.city || '')} • 🕐 ${App.formatDate(order.submittedAt)}
+          </div>
+          <div class="order-code-row">
+            <span>رقم الطلب:</span>
+            <span class="order-code-badge">${order.code}</span>
+          </div>
+          <div class="order-status ${statusInfo.class}">
+            ${statusInfo.icon} ${statusInfo.text}
+          </div>
+          <div class="order-actions">
+            <button class="btn-view" onclick="viewOrder('${order.code}')">👁️ عرض</button>
+            <button class="btn-delete" onclick="requestDelete('${order.code}')">🗑️ طلب حذف</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ===== حالة الطلب ===== */
+function getStatusInfo(status) {
+  switch (status) {
+    case 'approved':
+      return { class: 'status-approved', icon: '✅', text: 'منشور' };
+    case 'rejected':
+      return { class: 'status-rejected', icon: '❌', text: 'مرفوض' };
+    default:
+      return { class: 'status-pending', icon: '⏳', text: 'قيد المراجعة' };
+  }
+}
+
+/* ===== عرض تفاصيل الطلب ===== */
+function viewOrder(code) {
+  const orders = KK.getMyOrders();
+  const order = orders.find(o => o.code === code);
+  if (!order) return;
+
+  const images = order.images || [];
+  const price = App.formatPrice(order.price, order.currency);
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-title">تفاصيل الإعلان</div>
+      <div style="margin-bottom:15px;">
+        <span class="order-code-badge" style="display:inline-block;">${order.code}</span>
+      </div>
+      ${images.length > 0 ? `
+        <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); gap:8px; margin-bottom:15px;">
+          ${images.map(img => `<img src="${img}" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px;">`).join('')}
+        </div>
+      ` : ''}
+      <h3 style="margin-bottom:8px;">${App.escapeHTML(order.title)}</h3>
+      <p style="color:#b12704; font-size:20px; font-weight:bold; margin-bottom:10px;">${price}</p>
+      <p style="font-size:13px; color:#666; margin-bottom:10px;">📍 ${App.escapeHTML(order.city || '')}</p>
+      <p style="font-size:14px; line-height:1.6; white-space:pre-wrap; margin-bottom:15px;">${App.escapeHTML(order.description || '')}</p>
+      <button class="btn btn-primary btn-full" onclick="this.closest('.modal-overlay').remove()">إغلاق</button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+/* ===== طلب حذف ===== */
+function requestDelete(code) {
+  const orders = KK.getMyOrders();
+  const order = orders.find(o => o.code === code);
+  if (!order) return;
+
+  if (!confirm('هل تريد إرسال طلب حذف هذا الإعلان للإدارة؟')) return;
+
+  Submit.requestDelete(order.code, order.title);
+}
+
+/* ===== البحث ===== */
+function doSearch() {
+  const query = document.getElementById('searchInput').value.trim();
+  if (query.length < 2) {
+    App.toast('اكتب على الأقل حرفين للبحث', 'info');
+    return;
+  }
+  window.location.href = '/category.html?q=' + encodeURIComponent(query);
+}
+</script>
+
+</body>
+</html>
