@@ -71,5 +71,25 @@
     "status": "active",
     "views": 0,
     "createdAt": "2026-10-09T07:00:00Z"
+  },
+  {
+    "id": "ad_1791564443194",
+    "orderCode": "KK-2026-6886",
+    "title": "بايسكل ياباني حجم وسط",
+    "category": "cars",
+    "price": 55000,
+    "currency": "IQD",
+    "description": "البايسكل نظافة وسط .. لا يوجد به اي مشاكل . كما موضح في الصورة",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791564410841_3183.jpg"
+    ],
+    "city": "فلوجة - نزال",
+    "whatsapp": "07856761412",
+    "ownerName": "مهند زهير",
+    "ownerPhone": "07856761412",
+    "status": "active",
+    "views": 0,
+    "createdAt": "2026-10-09T16:47:23.194Z",
+    "publishedAt": "2026-10-09T16:47:23.194Z"
   }
 ]
