@@ -1,5 +1,5 @@
 /* ==========================================
-   products.js - إدارة الإعلانات وعرضها + التقييمات
+   products.js - إدارة الإعلانات + التقييمات
    ========================================== */
 
 const Products = {
@@ -10,11 +10,8 @@ const Products = {
   _viewsCache: null,
   _viewsCacheTime: 0,
   _viewsCacheDuration: 5 * 60 * 1000,
-  _reviewsCache: {},
 
-  /* ==========================================
-     تحميل كل الإعلانات من ads.json
-     ========================================== */
+  /* ===== تحميل الإعلانات ===== */
   async loadAll(forceRefresh = false) {
     const now = Date.now();
     if (!forceRefresh && this._cache && (now - this._cacheTime) < this._cacheDuration) {
@@ -40,9 +37,7 @@ const Products = {
     return active;
   },
 
-  /* ==========================================
-     تحميل المشاهدات من views.json
-     ========================================== */
+  /* ===== تحميل المشاهدات ===== */
   async loadViews(forceRefresh = false) {
     const now = Date.now();
     if (!forceRefresh && this._viewsCache && (now - this._viewsCacheTime) < this._viewsCacheDuration) {
@@ -65,9 +60,7 @@ const Products = {
     return views[productId] || 0;
   },
 
-  /* ==========================================
-     دوال أساسية
-     ========================================== */
+  /* ===== دوال أساسية ===== */
   async getById(id) {
     const all = await this.loadAll();
     return all.find(p => String(p.id) === String(id));
@@ -78,7 +71,6 @@ const Products = {
     return all.filter(p => p.category === categoryId);
   },
 
-  /* تطبيع النص العربي */
   normalizeArabic(text) {
     if (!text) return '';
     return String(text)
@@ -115,9 +107,7 @@ const Products = {
     return cat ? cat.name : categoryId;
   },
 
-  /* ==========================================
-     دوال العرض
-     ========================================== */
+  /* ===== شبكة الإعلانات ===== */
   async renderGrid(containerId, products) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -144,9 +134,7 @@ const Products = {
     `;
   },
 
-  /* ==========================================
-     صفحة الصنف
-     ========================================== */
+  /* ===== صفحة الصنف ===== */
   async initCategoryPage() {
     const categoryId = App.getURLParam('cat');
     const searchQuery = App.getURLParam('q');
@@ -210,9 +198,7 @@ const Products = {
     });
   },
 
-  /* ==========================================
-     صفحة المنتج
-     ========================================== */
+  /* ===== صفحة المنتج ===== */
   async initProductPage() {
     const productId = App.getURLParam('id');
     const bodyEl = document.getElementById('productBody');
@@ -234,13 +220,11 @@ const Products = {
     document.title = product.title + ' - كلشي كلاشي';
 
     this.trackView(productId);
-
     this.renderProductDetails(product);
     await this.renderSimilar(product);
     await this.renderReviews(productId);
   },
 
-  /* تسجيل مشاهدة */
   async trackView(productId) {
     try {
       const sessionKey = 'kk_viewed_' + productId;
@@ -256,12 +240,9 @@ const Products = {
       if (data.success) {
         sessionStorage.setItem(sessionKey, '1');
       }
-    } catch (e) {
-      console.error('فشل تسجيل المشاهدة:', e);
-    }
+    } catch (e) {}
   },
 
-  /* عرض تفاصيل المنتج */
   renderProductDetails(product) {
     const bodyEl = document.getElementById('productBody');
     const images = (product.images && product.images.length)
@@ -329,7 +310,6 @@ const Products = {
     });
   },
 
-  /* مشاركة */
   async shareProduct(productId) {
     const product = await this.getById(productId);
     if (!product) return;
@@ -351,7 +331,6 @@ const Products = {
     }
   },
 
-  /* منتجات مشابهة */
   async renderSimilar(product) {
     const similarEl = document.getElementById('similarProducts');
     if (!similarEl) return;
@@ -376,7 +355,6 @@ const Products = {
     `;
   },
 
-  /* الإبلاغ */
   async reportProduct(productId) {
     const product = await this.getById(productId);
     if (!product) return;
@@ -458,7 +436,7 @@ const Products = {
   },
 
   /* ==========================================
-     نظام التقييمات
+     نظام التقييمات الجديد
      ========================================== */
   async renderReviews(productId) {
     const reviewsEl = document.getElementById('reviewsSection');
@@ -471,7 +449,10 @@ const Products = {
     `;
 
     try {
-      const response = await fetch('/api/get-reviews?id=' + encodeURIComponent(productId));
+      const user = KK.getUser();
+      const phoneParam = user ? encodeURIComponent(user.phone) : '';
+
+      const response = await fetch(`/api/get-reviews?id=${encodeURIComponent(productId)}&phone=${phoneParam}`);
       const data = await response.json();
 
       if (!data.success) {
@@ -479,7 +460,6 @@ const Products = {
         return;
       }
 
-      this._reviewsCache[productId] = data;
       this.displayReviews(productId, data);
 
     } catch (e) {
@@ -492,8 +472,9 @@ const Products = {
     const reviewsEl = document.getElementById('reviewsSection');
     if (!reviewsEl) return;
 
-    const { reviews = [], average = 0, total = 0 } = data;
+    const { reviews = [], userReview = null, average = 0, total = 0 } = data;
 
+    // نجوم المتوسط
     let starsHTML = '';
     if (total > 0) {
       const fullStars = Math.round(average);
@@ -501,6 +482,19 @@ const Products = {
         starsHTML += i <= fullStars ? '⭐' : '☆';
       }
     }
+
+    // نموذج/تقييم المستخدم
+    let userSectionHTML = '';
+    if (userReview) {
+      // المستخدم قيّم مسبقاً → اعرض تقييمه مميزاً مع زر تعديل
+      userSectionHTML = this.userReviewCardHTML(userReview);
+    } else {
+      // نموذج تقييم جديد
+      userSectionHTML = this.reviewFormHTML(productId);
+    }
+
+    // تقييمات الآخرين (بدون المستخدم)
+    const otherReviews = reviews;
 
     reviewsEl.innerHTML = `
       <h2 class="section-title">⭐ التقييمات (${total})</h2>
@@ -514,38 +508,77 @@ const Products = {
           </div>
         ` : ''}
 
-        <div class="review-form-box">
-          <h3>${total > 0 ? 'أضف تقييمك' : 'كن أول من يُقيّم'}</h3>
-          <div class="review-rating-selector" id="ratingSelector">
-            <span class="star-btn" data-value="1">⭐</span>
-            <span class="star-btn" data-value="2">⭐</span>
-            <span class="star-btn" data-value="3">⭐</span>
-            <span class="star-btn" data-value="4">⭐</span>
-            <span class="star-btn" data-value="5">⭐</span>
-          </div>
-          <input type="text" id="reviewName" placeholder="اسمك (اختياري)" maxlength="30" class="review-input">
-          <textarea id="reviewComment" placeholder="اكتب تعليقك (اختياري)" maxlength="300" rows="3" class="review-textarea"></textarea>
-          <button class="btn btn-primary btn-full" onclick="Products.submitReview('${productId}')">
-            📝 إرسال التقييم
-          </button>
-        </div>
+        ${userSectionHTML}
 
-        ${reviews.length > 0 ? `
+        ${otherReviews.length > 0 ? `
           <div class="reviews-list">
-            ${reviews.map(r => this.reviewItemHTML(r)).join('')}
+            ${otherReviews.map(r => this.reviewItemHTML(r)).join('')}
           </div>
         ` : ''}
       </div>
     `;
 
-    // تفعيل اختيار النجوم
-    this.setupRatingSelector();
+    // تفعيل اختيار النجوم إذا كنا في نموذج جديد
+    if (!userReview) {
+      this.setupRatingSelector();
+    }
   },
 
+  /* بطاقة تقييم المستخدم (مميزة مع زر تعديل) */
+  userReviewCardHTML(review) {
+    const stars = '⭐'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+    const isEdited = review.isEdited || review.updatedAt;
+
+    return `
+      <div class="user-review-card">
+        <div class="user-review-badge">📝 تقييمك</div>
+        <div class="review-header">
+          <div class="review-avatar">${App.escapeHTML(review.reviewerName.charAt(0) || 'أ')}</div>
+          <div class="review-info">
+            <div class="review-name">${App.escapeHTML(review.reviewerName)}</div>
+            <div class="review-date">
+              ${App.formatDate(review.createdAt)}
+              ${isEdited ? '<span style="color:var(--accent);"> (مُعدّل)</span>' : ''}
+            </div>
+          </div>
+          <div class="review-stars">${stars}</div>
+        </div>
+        ${review.comment ? `<div class="review-comment">${App.escapeHTML(review.comment)}</div>` : ''}
+        <div class="user-review-actions">
+          <button class="btn btn-secondary" onclick="Products.editReview('${review.productId}')">
+            ✏️ تعديل تقييمي
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  /* نموذج تقييم جديد */
+  reviewFormHTML(productId) {
+    return `
+      <div class="review-form-box">
+        <h3>⭐ قيّم هذا الإعلان</h3>
+        <div class="review-rating-selector" id="ratingSelector" data-rating="0">
+          <span class="star-btn" data-value="1">⭐</span>
+          <span class="star-btn" data-value="2">⭐</span>
+          <span class="star-btn" data-value="3">⭐</span>
+          <span class="star-btn" data-value="4">⭐</span>
+          <span class="star-btn" data-value="5">⭐</span>
+        </div>
+        <textarea id="reviewComment" placeholder="اكتب تعليقك (اختياري)" maxlength="300" rows="3" class="review-textarea"></textarea>
+        <button class="btn btn-primary btn-full" onclick="Products.submitReview('${productId}', false)">
+          📝 إرسال التقييم
+        </button>
+      </div>
+    `;
+  },
+
+  /* عرض تقييم عادي (من شخص آخر) */
   reviewItemHTML(review) {
     const stars = '⭐'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
     const name = App.escapeHTML(review.reviewerName || 'زائر');
     const initial = name.charAt(0).toUpperCase();
+    const isEdited = review.isEdited || review.updatedAt;
 
     return `
       <div class="review-item">
@@ -553,7 +586,10 @@ const Products = {
           <div class="review-avatar">${initial}</div>
           <div class="review-info">
             <div class="review-name">${name}</div>
-            <div class="review-date">${App.formatDate(review.createdAt)}</div>
+            <div class="review-date">
+              ${App.formatDate(review.createdAt)}
+              ${isEdited ? '<span style="color:var(--accent);"> (مُعدّل)</span>' : ''}
+            </div>
           </div>
           <div class="review-stars">${stars}</div>
         </div>
@@ -566,18 +602,24 @@ const Products = {
     const selector = document.getElementById('ratingSelector');
     if (!selector) return;
 
-    let currentRating = 0;
+    let currentRating = parseInt(selector.dataset.rating || 0);
     const stars = selector.querySelectorAll('.star-btn');
 
+    // تفعيل النجوم الحالية (عند التعديل)
+    if (currentRating > 0) {
+      stars.forEach((s, i) => {
+        s.classList.toggle('active', i < currentRating);
+        s.classList.toggle('selected', i < currentRating);
+      });
+    }
+
     stars.forEach((star, index) => {
-      // Hover
       star.addEventListener('mouseenter', () => {
         stars.forEach((s, i) => {
           s.classList.toggle('active', i <= index);
         });
       });
 
-      // Click
       star.addEventListener('click', () => {
         currentRating = index + 1;
         selector.dataset.rating = currentRating;
@@ -588,7 +630,6 @@ const Products = {
       });
     });
 
-    // Reset on mouse leave
     selector.addEventListener('mouseleave', () => {
       stars.forEach((s, i) => {
         s.classList.remove('active');
@@ -597,23 +638,136 @@ const Products = {
     });
   },
 
-  async submitReview(productId) {
-    const selector = document.getElementById('ratingSelector');
+  /* تعديل التقييم */
+  async editReview(productId) {
+    const user = KK.getUser();
+    if (!user) {
+      App.toast('يجب تسجيل الدخول', 'error');
+      return;
+    }
+
+    // جلب تقييم المستخدم الحالي
+    const response = await fetch(`/api/get-reviews?id=${encodeURIComponent(productId)}&phone=${encodeURIComponent(user.phone)}`);
+    const data = await response.json();
+
+    if (!data.success || !data.userReview) {
+      App.toast('لم يتم العثور على تقييمك', 'error');
+      return;
+    }
+
+    const current = data.userReview;
+
+    // فتح نافذة تعديل
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    modal.innerHTML = `
+      <div class="modal-box">
+        <div class="modal-title">✏️ تعديل التقييم</div>
+        <div class="modal-subtitle">عدّل تقييمك وتعليقك</div>
+        <div class="review-rating-selector" id="editRatingSelector" data-rating="${current.rating}">
+          <span class="star-btn" data-value="1">⭐</span>
+          <span class="star-btn" data-value="2">⭐</span>
+          <span class="star-btn" data-value="3">⭐</span>
+          <span class="star-btn" data-value="4">⭐</span>
+          <span class="star-btn" data-value="5">⭐</span>
+        </div>
+        <textarea id="editReviewComment" placeholder="اكتب تعليقك (اختياري)" maxlength="300" rows="3" class="review-textarea">${App.escapeHTML(current.comment || '')}</textarea>
+        <div style="display:flex;gap:8px;margin-top:15px;">
+          <button class="btn btn-secondary" style="flex:1;" onclick="this.closest('.modal-overlay').remove()">إلغاء</button>
+          <button class="btn btn-primary" style="flex:2;" onclick="Products.saveEditedReview('${productId}')">💾 حفظ التعديل</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // إعداد النجوم
+    this.setupEditRatingSelector();
+  },
+
+  setupEditRatingSelector() {
+    const selector = document.getElementById('editRatingSelector');
+    if (!selector) return;
+
+    let currentRating = parseInt(selector.dataset.rating || 0);
+    const stars = selector.querySelectorAll('.star-btn');
+
+    stars.forEach((s, i) => {
+      s.classList.toggle('active', i < currentRating);
+      s.classList.toggle('selected', i < currentRating);
+    });
+
+    stars.forEach((star, index) => {
+      star.addEventListener('mouseenter', () => {
+        stars.forEach((s, i) => s.classList.toggle('active', i <= index));
+      });
+
+      star.addEventListener('click', () => {
+        currentRating = index + 1;
+        selector.dataset.rating = currentRating;
+        stars.forEach((s, i) => {
+          s.classList.toggle('active', i <= index);
+          s.classList.toggle('selected', i <= index);
+        });
+      });
+    });
+
+    selector.addEventListener('mouseleave', () => {
+      stars.forEach((s, i) => {
+        s.classList.remove('active');
+        if (i < currentRating) s.classList.add('active', 'selected');
+      });
+    });
+  },
+
+  async saveEditedReview(productId) {
+    const selector = document.getElementById('editRatingSelector');
     const rating = parseInt(selector?.dataset.rating || 0);
+    const comment = document.getElementById('editReviewComment').value.trim();
 
     if (!rating || rating < 1 || rating > 5) {
       App.toast('اختر تقييماً من 1 إلى 5 نجوم', 'error');
       return;
     }
 
-    const name = document.getElementById('reviewName').value.trim();
-    const comment = document.getElementById('reviewComment').value.trim();
+    await this.submitReview(productId, true, rating, comment);
+
+    // إغلاق النافذة
+    const modal = document.querySelector('.modal-overlay');
+    if (modal) modal.remove();
+  },
+
+  async submitReview(productId, isUpdate = false, overrideRating = null, overrideComment = null) {
     const user = KK.getUser();
+    if (!user || !user.phone) {
+      App.toast('يجب تسجيل الدخول للتقييم', 'error');
+      return;
+    }
+
+    let rating, comment;
+
+    if (isUpdate && overrideRating !== null) {
+      rating = overrideRating;
+      comment = overrideComment || '';
+    } else {
+      const selector = document.getElementById('ratingSelector');
+      rating = parseInt(selector?.dataset.rating || 0);
+      comment = document.getElementById('reviewComment')?.value.trim() || '';
+
+      if (!rating || rating < 1 || rating > 5) {
+        App.toast('اختر تقييماً من 1 إلى 5 نجوم', 'error');
+        return;
+      }
+    }
 
     // تعطيل الزر
-    const btn = event.target;
-    btn.disabled = true;
-    btn.textContent = '⏳ جارٍ الإرسال...';
+    const btn = event?.target;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ جارٍ الإرسال...';
+    }
 
     try {
       const response = await fetch('/api/review', {
@@ -623,32 +777,34 @@ const Products = {
           productId: productId,
           rating: rating,
           comment: comment,
-          reviewerName: name || (user ? user.name : 'زائر'),
-          reviewerPhone: user ? user.phone : ''
+          reviewerName: user.name,
+          reviewerPhone: user.phone,
+          isUpdate: isUpdate
         })
       });
 
       const data = await response.json();
 
       if (data.success) {
-        App.toast('✅ شكراً لتقييمك!', 'success');
-        // إعادة تحميل التقييمات
+        App.toast(isUpdate ? '✅ تم تحديث تقييمك' : '✅ شكراً لتقييمك!', 'success');
         await this.renderReviews(productId);
       } else {
         App.toast('❌ ' + (data.error || 'فشل الإرسال'), 'error');
-        btn.disabled = false;
-        btn.textContent = '📝 إرسال التقييم';
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = '📝 إرسال التقييم';
+        }
       }
     } catch (e) {
       App.toast('❌ فشل الإرسال', 'error');
-      btn.disabled = false;
-      btn.textContent = '📝 إرسال التقييم';
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '📝 إرسال التقييم';
+      }
     }
   },
 
-  /* ==========================================
-     الصفحة الرئيسية
-     ========================================== */
+  /* ===== الصفحة الرئيسية ===== */
   async initHomePage() {
     await this.renderCategories();
     const all = await this.loadAll();
