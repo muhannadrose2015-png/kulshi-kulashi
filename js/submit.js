@@ -24,52 +24,28 @@ const Submit = {
     const description = document.getElementById('adDescription').value.trim();
 
     // ===== التحقق =====
-    if (title.length < 5) {
-      return this.showError('العنوان قصير جداً (5 أحرف على الأقل)');
-    }
-    if (title.length > 100) {
-      return this.showError('العنوان طويل جداً (100 حرف كحد أقصى)');
-    }
-    if (!category) {
-      return this.showError('اختر الصنف');
-    }
-    if (!price || Number(price) <= 0) {
-      return this.showError('أدخل سعراً صحيحاً');
-    }
-    if (!whatsapp) {
-      return this.showError('أدخل رقم الواتساب');
-    }
+    if (title.length < 5) return this.showError('العنوان قصير جداً (5 أحرف على الأقل)');
+    if (title.length > 100) return this.showError('العنوان طويل جداً (100 حرف كحد أقصى)');
+    if (!category) return this.showError('اختر الصنف');
+    if (!price || Number(price) <= 0) return this.showError('أدخل سعراً صحيحاً');
+    if (!whatsapp) return this.showError('أدخل رقم الواتساب');
 
     const cleanWhatsapp = whatsapp.replace(/[^0-9]/g, '');
-    if (cleanWhatsapp.length < 10) {
-      return this.showError('رقم الواتساب غير صحيح');
-    }
-    if (!city) {
-      return this.showError('أدخل المدينة');
-    }
-    if (description.length < 10) {
-      return this.showError('الوصف قصير جداً (10 أحرف على الأقل)');
-    }
-    if (description.length > 2000) {
-      return this.showError('الوصف طويل جداً (2000 حرف كحد أقصى)');
-    }
+    if (cleanWhatsapp.length < 10) return this.showError('رقم الواتساب غير صحيح');
+    if (!city) return this.showError('أدخل المدينة');
+    if (description.length < 10) return this.showError('الوصف قصير جداً (10 أحرف على الأقل)');
+    if (description.length > 2000) return this.showError('الوصف طويل جداً (2000 حرف كحد أقصى)');
 
     // ===== فحص الكلمات المحظورة =====
     const contentCheck = Ban.validateContent(title + ' ' + description);
-    if (!contentCheck.ok) {
-      return this.showError(contentCheck.message);
-    }
+    if (!contentCheck.ok) return this.showError(contentCheck.message);
 
     // ===== فحص المستخدم =====
     const user = KK.getUser();
-    if (!user) {
-      return this.showError('يجب تسجيل الدخول أولاً');
-    }
+    if (!user) return this.showError('يجب تسجيل الدخول أولاً');
 
     // ===== فحص عدد الصور =====
-    if (Uploader.count() === 0) {
-      return this.showError('أضف صورة واحدة على الأقل');
-    }
+    if (Uploader.count() === 0) return this.showError('أضف صورة واحدة على الأقل');
 
     // ===== تعطيل الزر =====
     btn.disabled = true;
@@ -186,7 +162,71 @@ const Submit = {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
 
-  /* إرسال طلب حذف */
+  /* ==========================================
+     حذف إعلان (من إعلاناتي)
+     - يحذف الطلب من LocalStorage فوراً
+     - يُرسل إشعار إلى تليجرام
+     ========================================== */
+  async deleteOrder(orderCode) {
+    const orders = KK.getMyOrders();
+    const order = orders.find(o => o.code === orderCode);
+    if (!order) {
+      App.toast('لم يتم العثور على الطلب', 'error');
+      return;
+    }
+
+    // طلب تأكيد
+    const statusText = order.status === 'approved'
+      ? 'هذا الإعلان منشور في الموقع. هل تريد إرسال طلب حذفه؟\n\n(سيُحذف من جهازك فوراً، لكن سيحتاج وقتاً ليُحذف من الموقع)'
+      : 'هل تريد حذف هذا الإعلان؟';
+
+    if (!confirm(statusText)) return;
+
+    // ===== 1. حذف محلي فوري =====
+    this.removeOrderLocally(orderCode);
+
+    // ===== 2. إرسال إشعار إلى تليجرام =====
+    try {
+      const user = KK.getUser();
+      await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_request',
+          data: {
+            productId: order.code,
+            productTitle: order.title,
+            ownerName: user ? user.name : '',
+            ownerPhone: user ? user.phone : '',
+            status: order.status,
+            reason: order.status === 'approved' ? 'إعلان منشور - يحتاج حذف من ads.json' : 'إعلان قيد المراجعة'
+          }
+        })
+      });
+    } catch (e) {
+      // لا نوقف الحذف المحلي في حال فشل الإشعار
+      console.error('فشل إرسال الإشعار:', e);
+    }
+
+    // ===== 3. تحديث الواجهة =====
+    App.toast('✅ تم حذف الإعلان', 'success');
+
+    // إعادة تحميل قائمة الإعلانات إذا كنا في my-ads.html
+    if (typeof renderMyAds === 'function') {
+      setTimeout(() => renderMyAds(), 300);
+    }
+  },
+
+  /* حذف الطلب من LocalStorage */
+  removeOrderLocally(orderCode) {
+    const orders = KK.getMyOrders();
+    const filtered = orders.filter(o => o.code !== orderCode);
+    localStorage.setItem(KK.KEYS.MY_ORDERS, JSON.stringify(filtered));
+  },
+
+  /* ==========================================
+     طلب حذف من صفحة المنتج (للمشتري/الزائر)
+     ========================================== */
   async requestDelete(productId, productTitle) {
     const user = KK.getUser();
     if (!user) {
@@ -195,7 +235,7 @@ const Submit = {
     }
 
     const reason = prompt('ما سبب طلب حذف الإعلان؟ (اختياري)');
-    if (reason === null) return; // إلغاء
+    if (reason === null) return;
 
     try {
       const response = await fetch('/api/submit', {
