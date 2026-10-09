@@ -1,5 +1,5 @@
 /* ==========================================
-   products.js - إدارة الإعلانات وعرضها
+   products.js - إدارة الإعلانات وعرضها + التقييمات
    ========================================== */
 
 const Products = {
@@ -9,7 +9,8 @@ const Products = {
   _cacheDuration: 60 * 1000,
   _viewsCache: null,
   _viewsCacheTime: 0,
-  _viewsCacheDuration: 5 * 60 * 1000, // 5 دقائق
+  _viewsCacheDuration: 5 * 60 * 1000,
+  _reviewsCache: {},
 
   /* ==========================================
      تحميل كل الإعلانات من ads.json
@@ -59,7 +60,6 @@ const Products = {
     }
   },
 
-  /* الحصول على عدد المشاهدات لمنتج */
   async getViews(productId) {
     const views = await this.loadViews();
     return views[productId] || 0;
@@ -78,31 +78,31 @@ const Products = {
     return all.filter(p => p.category === categoryId);
   },
 
-  /* تطبيع النص العربي (إزالة الهمزات والحركات) */
-normalizeArabic(text) {
-  if (!text) return '';
-  return String(text)
-    .toLowerCase()
-    .replace(/[أإآا]/g, 'ا')
-    .replace(/[ىي]/g, 'ي')
-    .replace(/[ةه]/g, 'ه')
-    .replace(/[ًٌٍَُِّْـ]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-},
+  /* تطبيع النص العربي */
+  normalizeArabic(text) {
+    if (!text) return '';
+    return String(text)
+      .toLowerCase()
+      .replace(/[أإآا]/g, 'ا')
+      .replace(/[ىي]/g, 'ي')
+      .replace(/[ةه]/g, 'ه')
+      .replace(/[ًٌٍَُِّْـ]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  },
 
-async search(query) {
-  if (!query || query.trim().length < 2) return [];
-  const all = await this.loadAll();
-  const q = this.normalizeArabic(query);
+  async search(query) {
+    if (!query || query.trim().length < 2) return [];
+    const all = await this.loadAll();
+    const q = this.normalizeArabic(query);
 
-  return all.filter(p => {
-    const title = this.normalizeArabic(p.title);
-    const description = this.normalizeArabic(p.description);
-    const city = this.normalizeArabic(p.city);
-    return title.includes(q) || description.includes(q) || city.includes(q);
-  });
-},
+    return all.filter(p => {
+      const title = this.normalizeArabic(p.title);
+      const description = this.normalizeArabic(p.description);
+      const city = this.normalizeArabic(p.city);
+      return title.includes(q) || description.includes(q) || city.includes(q);
+    });
+  },
 
   async getCategories() {
     const data = await App.fetchJSON('/data/categories.json');
@@ -127,7 +127,6 @@ async search(query) {
       return;
     }
 
-    // نُحمّل المشاهدات مرة واحدة قبل العرض
     const views = await this.loadViews();
 
     container.innerHTML = products
@@ -234,14 +233,14 @@ async search(query) {
 
     document.title = product.title + ' - كلشي كلاشي';
 
-    // تسجيل مشاهدة (لا ننتظر النتيجة)
     this.trackView(productId);
 
     this.renderProductDetails(product);
     await this.renderSimilar(product);
+    await this.renderReviews(productId);
   },
 
-  /* تسجيل مشاهدة في Cloudflare KV */
+  /* تسجيل مشاهدة */
   async trackView(productId) {
     try {
       const sessionKey = 'kk_viewed_' + productId;
@@ -330,7 +329,7 @@ async search(query) {
     });
   },
 
-  /* مشاركة المنتج */
+  /* مشاركة */
   async shareProduct(productId) {
     const product = await this.getById(productId);
     if (!product) return;
@@ -340,14 +339,8 @@ async search(query) {
 
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: product.title,
-          text: text,
-          url: url
-        });
-      } catch (e) {
-        // المستخدم ألغى
-      }
+        await navigator.share({ title: product.title, text: text, url: url });
+      } catch (e) {}
     } else {
       try {
         await navigator.clipboard.writeText(url);
@@ -383,138 +376,275 @@ async search(query) {
     `;
   },
 
-/* الإبلاغ عن منتج */
-async reportProduct(productId) {
-  const product = await this.getById(productId);
-  if (!product) return;
+  /* الإبلاغ */
+  async reportProduct(productId) {
+    const product = await this.getById(productId);
+    if (!product) return;
 
-  // عرض نافذة اختيار السبب
-  const reason = await this.showReportDialog();
-  if (!reason) return;
+    const reason = await this.showReportDialog();
+    if (!reason) return;
 
-  const user = KK.getUser();
+    const user = KK.getUser();
 
-  const report = {
-    type: 'report',
-    productId: productId,
-    productTitle: product.title,
-    reporterName: user ? user.name : 'زائر',
-    reporterPhone: user ? user.phone : '',
-    reason: reason,
-    reportedAt: new Date().toISOString()
-  };
-
-  try {
-    const response = await fetch('/api/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'report',
-        data: report
-      })
-    });
-    const result = await response.json();
-    if (result.success) {
-      App.toast('✅ تم الإبلاغ، شكراً لك', 'success');
-    } else {
-      App.toast('⚠️ سيتم مراجعة الإبلاغ', 'info');
-    }
-  } catch (e) {
-    App.toast('⚠️ سيتم مراجعة الإبلاغ', 'info');
-  }
-},
-
-/* نافذة اختيار سبب الإبلاغ */
-showReportDialog() {
-  return new Promise((resolve) => {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.onclick = (e) => {
-      if (e.target === modal) {
-        modal.remove();
-        resolve(null);
-      }
+    const report = {
+      type: 'report',
+      productId: productId,
+      productTitle: product.title,
+      reporterName: user ? user.name : 'زائر',
+      reporterPhone: user ? user.phone : '',
+      reason: reason,
+      reportedAt: new Date().toISOString()
     };
 
-    modal.innerHTML = `
-      <div class="modal-box">
-        <div class="modal-title">⚠️ الإبلاغ عن إعلان</div>
-        <div class="modal-subtitle">اختر سبب الإبلاغ</div>
+    try {
+      const response = await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'report', data: report })
+      });
+      const result = await response.json();
+      if (result.success) {
+        App.toast('✅ تم الإبلاغ، شكراً لك', 'success');
+      } else {
+        App.toast('⚠️ سيتم مراجعة الإبلاغ', 'info');
+      }
+    } catch (e) {
+      App.toast('⚠️ سيتم مراجعة الإبلاغ', 'info');
+    }
+  },
 
-        <div class="report-reasons">
-          <button class="report-reason" data-reason="منتج مزيّف أو مزيف">
-            <span>🚫</span> منتج مزيّف أو مزيف
-          </button>
-          <button class="report-reason" data-reason="محتوى مخالف أو غير لائق">
-            <span>⚠️</span> محتوى مخالف أو غير لائق
-          </button>
-          <button class="report-reason" data-reason="سعر خاطئ أو مضلل">
-            <span>💰</span> سعر خاطئ أو مضلل
-          </button>
-          <button class="report-reason" data-reason="إعلان مكرر">
-            <span>📋</span> إعلان مكرر
-          </button>
-          <button class="report-reason" data-reason="احتيال أو نصب">
-            <span>🚨</span> احتيال أو نصب
-          </button>
-          <button class="report-reason" data-reason="سبب آخر">
-            <span>📝</span> سبب آخر
-          </button>
+  showReportDialog() {
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.className = 'modal-overlay';
+      modal.onclick = (e) => {
+        if (e.target === modal) { modal.remove(); resolve(null); }
+      };
+
+      modal.innerHTML = `
+        <div class="modal-box">
+          <div class="modal-title">⚠️ الإبلاغ عن إعلان</div>
+          <div class="modal-subtitle">اختر سبب الإبلاغ</div>
+          <div class="report-reasons">
+            <button class="report-reason" data-reason="منتج مزيّف أو مزيف"><span>🚫</span> منتج مزيّف أو مزيف</button>
+            <button class="report-reason" data-reason="محتوى مخالف أو غير لائق"><span>⚠️</span> محتوى مخالف أو غير لائق</button>
+            <button class="report-reason" data-reason="سعر خاطئ أو مضلل"><span>💰</span> سعر خاطئ أو مضلل</button>
+            <button class="report-reason" data-reason="إعلان مكرر"><span>📋</span> إعلان مكرر</button>
+            <button class="report-reason" data-reason="احتيال أو نصب"><span>🚨</span> احتيال أو نصب</button>
+            <button class="report-reason" data-reason="سبب آخر"><span>📝</span> سبب آخر</button>
+          </div>
+          <button class="btn btn-secondary btn-full" style="margin-top:15px;" onclick="this.closest('.modal-overlay').remove();">إلغاء</button>
         </div>
+      `;
 
-        <button class="btn btn-secondary btn-full" style="margin-top:15px;" onclick="this.closest('.modal-overlay').remove();">
-          إلغاء
-        </button>
+      const style = document.createElement('style');
+      style.textContent = `
+        .report-reasons { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .report-reason { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: bold; color: #232f3e; cursor: pointer; transition: 0.2s; text-align: right; }
+        .report-reason:hover, .report-reason:active { background: #fff9f0; border-color: #ff9900; }
+        .report-reason span { font-size: 22px; }
+      `;
+      modal.appendChild(style);
+      document.body.appendChild(modal);
+
+      modal.querySelectorAll('.report-reason').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const reason = btn.dataset.reason;
+          modal.remove();
+          resolve(reason);
+        });
+      });
+    });
+  },
+
+  /* ==========================================
+     نظام التقييمات
+     ========================================== */
+  async renderReviews(productId) {
+    const reviewsEl = document.getElementById('reviewsSection');
+    if (!reviewsEl) return;
+
+    reviewsEl.innerHTML = `
+      <div class="loading" style="padding:20px;">
+        <div class="spinner"></div>
       </div>
     `;
 
-    // إضافة التنسيقات
-    const style = document.createElement('style');
-    style.textContent = `
-      .report-reasons {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 10px;
+    try {
+      const response = await fetch('/api/get-reviews?id=' + encodeURIComponent(productId));
+      const data = await response.json();
+
+      if (!data.success) {
+        reviewsEl.innerHTML = '';
+        return;
       }
-      .report-reason {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 14px 16px;
-        background: #f8f9fa;
-        border: 2px solid #e0e0e0;
-        border-radius: 10px;
-        font-family: inherit;
-        font-size: 14px;
-        font-weight: bold;
-        color: #232f3e;
-        cursor: pointer;
-        transition: 0.2s;
-        text-align: right;
+
+      this._reviewsCache[productId] = data;
+      this.displayReviews(productId, data);
+
+    } catch (e) {
+      console.error('Reviews load error:', e);
+      reviewsEl.innerHTML = '';
+    }
+  },
+
+  displayReviews(productId, data) {
+    const reviewsEl = document.getElementById('reviewsSection');
+    if (!reviewsEl) return;
+
+    const { reviews = [], average = 0, total = 0 } = data;
+
+    let starsHTML = '';
+    if (total > 0) {
+      const fullStars = Math.round(average);
+      for (let i = 1; i <= 5; i++) {
+        starsHTML += i <= fullStars ? '⭐' : '☆';
       }
-      .report-reason:hover, .report-reason:active {
-        background: #fff9f0;
-        border-color: #ff9900;
-      }
-      .report-reason span {
-        font-size: 22px;
-      }
+    }
+
+    reviewsEl.innerHTML = `
+      <h2 class="section-title">⭐ التقييمات (${total})</h2>
+
+      <div class="reviews-container">
+        ${total > 0 ? `
+          <div class="reviews-summary">
+            <div class="reviews-average">${average}</div>
+            <div class="reviews-stars-big">${starsHTML}</div>
+            <div class="reviews-count">${total} تقييم</div>
+          </div>
+        ` : ''}
+
+        <div class="review-form-box">
+          <h3>${total > 0 ? 'أضف تقييمك' : 'كن أول من يُقيّم'}</h3>
+          <div class="review-rating-selector" id="ratingSelector">
+            <span class="star-btn" data-value="1">⭐</span>
+            <span class="star-btn" data-value="2">⭐</span>
+            <span class="star-btn" data-value="3">⭐</span>
+            <span class="star-btn" data-value="4">⭐</span>
+            <span class="star-btn" data-value="5">⭐</span>
+          </div>
+          <input type="text" id="reviewName" placeholder="اسمك (اختياري)" maxlength="30" class="review-input">
+          <textarea id="reviewComment" placeholder="اكتب تعليقك (اختياري)" maxlength="300" rows="3" class="review-textarea"></textarea>
+          <button class="btn btn-primary btn-full" onclick="Products.submitReview('${productId}')">
+            📝 إرسال التقييم
+          </button>
+        </div>
+
+        ${reviews.length > 0 ? `
+          <div class="reviews-list">
+            ${reviews.map(r => this.reviewItemHTML(r)).join('')}
+          </div>
+        ` : ''}
+      </div>
     `;
-    modal.appendChild(style);
 
-    document.body.appendChild(modal);
+    // تفعيل اختيار النجوم
+    this.setupRatingSelector();
+  },
 
-    // ربط الأزرار
-    modal.querySelectorAll('.report-reason').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const reason = btn.dataset.reason;
-        modal.remove();
-        resolve(reason);
+  reviewItemHTML(review) {
+    const stars = '⭐'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+    const name = App.escapeHTML(review.reviewerName || 'زائر');
+    const initial = name.charAt(0).toUpperCase();
+
+    return `
+      <div class="review-item">
+        <div class="review-header">
+          <div class="review-avatar">${initial}</div>
+          <div class="review-info">
+            <div class="review-name">${name}</div>
+            <div class="review-date">${App.formatDate(review.createdAt)}</div>
+          </div>
+          <div class="review-stars">${stars}</div>
+        </div>
+        ${review.comment ? `<div class="review-comment">${App.escapeHTML(review.comment)}</div>` : ''}
+      </div>
+    `;
+  },
+
+  setupRatingSelector() {
+    const selector = document.getElementById('ratingSelector');
+    if (!selector) return;
+
+    let currentRating = 0;
+    const stars = selector.querySelectorAll('.star-btn');
+
+    stars.forEach((star, index) => {
+      // Hover
+      star.addEventListener('mouseenter', () => {
+        stars.forEach((s, i) => {
+          s.classList.toggle('active', i <= index);
+        });
+      });
+
+      // Click
+      star.addEventListener('click', () => {
+        currentRating = index + 1;
+        selector.dataset.rating = currentRating;
+        stars.forEach((s, i) => {
+          s.classList.toggle('active', i <= index);
+          s.classList.toggle('selected', i <= index);
+        });
       });
     });
-  });
-},
+
+    // Reset on mouse leave
+    selector.addEventListener('mouseleave', () => {
+      stars.forEach((s, i) => {
+        s.classList.remove('active');
+        if (i < currentRating) s.classList.add('active', 'selected');
+      });
+    });
+  },
+
+  async submitReview(productId) {
+    const selector = document.getElementById('ratingSelector');
+    const rating = parseInt(selector?.dataset.rating || 0);
+
+    if (!rating || rating < 1 || rating > 5) {
+      App.toast('اختر تقييماً من 1 إلى 5 نجوم', 'error');
+      return;
+    }
+
+    const name = document.getElementById('reviewName').value.trim();
+    const comment = document.getElementById('reviewComment').value.trim();
+    const user = KK.getUser();
+
+    // تعطيل الزر
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ جارٍ الإرسال...';
+
+    try {
+      const response = await fetch('/api/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: productId,
+          rating: rating,
+          comment: comment,
+          reviewerName: name || (user ? user.name : 'زائر'),
+          reviewerPhone: user ? user.phone : ''
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        App.toast('✅ شكراً لتقييمك!', 'success');
+        // إعادة تحميل التقييمات
+        await this.renderReviews(productId);
+      } else {
+        App.toast('❌ ' + (data.error || 'فشل الإرسال'), 'error');
+        btn.disabled = false;
+        btn.textContent = '📝 إرسال التقييم';
+      }
+    } catch (e) {
+      App.toast('❌ فشل الإرسال', 'error');
+      btn.disabled = false;
+      btn.textContent = '📝 إرسال التقييم';
+    }
+  },
 
   /* ==========================================
      الصفحة الرئيسية
