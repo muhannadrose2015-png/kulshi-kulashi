@@ -1,6 +1,7 @@
 /* ==========================================
    Cloudflare Function - إرسال الإعلان إلى تليجرام
    المسار: /api/submit
+   يخزّن الإعلانات المعلّقة في KV لأجل الموافقة
    ========================================== */
 
 export async function onRequest(context) {
@@ -45,9 +46,28 @@ export async function onRequest(context) {
 
     /* ===== إعلان جديد ===== */
     if (action === 'new_ad') {
+      // تخزين الإعلان في KV أولاً (لأجل الموافقة)
+      if (env.VIEWS_KV) {
+        try {
+          const key = `pending_ad:${data.orderCode}`;
+          const value = JSON.stringify({
+            ...data,
+            createdAt: new Date().toISOString(),
+            status: 'pending'
+          });
+          // نحفظ في KV مع expiry بعد 30 يوماً
+          await env.VIEWS_KV.put(key, value, {
+            expirationTtl: 60 * 60 * 24 * 30
+          });
+          console.log('Ad stored in KV:', key);
+        } catch (kvError) {
+          console.error('KV store error:', kvError);
+          // لا نوقف العملية إذا فشل التخزين
+        }
+      }
+
       message = formatNewAd(data);
 
-      // أزرار الموافقة/الرفض
       replyMarkup = {
         inline_keyboard: [
           [
@@ -63,6 +83,12 @@ export async function onRequest(context) {
     }
     /* ===== طلب حذف ===== */
     else if (action === 'delete_request') {
+      // حذف الإعلان المعلّق من KV (إن وُجد)
+      if (env.VIEWS_KV && data.productId) {
+        try {
+          await env.VIEWS_KV.delete(`pending_ad:${data.productId}`);
+        } catch (e) {}
+      }
       message = formatDeleteRequest(data);
     }
     /* ===== اختبار ===== */
