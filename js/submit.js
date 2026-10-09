@@ -81,14 +81,15 @@ const Submit = {
       };
 
       /* ===== المرحلة 4: الإرسال إلى تليجرام ===== */
-      const response = await fetch('/api/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'new_ad',
-          data: adData
-        })
-      });
+// نُرسل البيانات الكاملة، وسيتولى الـ Function تخزينها في KV
+const response = await fetch('/api/submit', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    action: 'new_ad',
+    data: adData
+  })
+});
 
       const result = await response.json();
 
