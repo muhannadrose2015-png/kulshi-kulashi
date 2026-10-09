@@ -383,43 +383,138 @@ async search(query) {
     `;
   },
 
-  /* الإبلاغ عن منتج */
-  async reportProduct(productId) {
-    if (!confirm('هل تريد الإبلاغ عن هذا الإعلان؟')) return;
+/* الإبلاغ عن منتج */
+async reportProduct(productId) {
+  const product = await this.getById(productId);
+  if (!product) return;
 
-    const product = await this.getById(productId);
-    if (!product) return;
+  // عرض نافذة اختيار السبب
+  const reason = await this.showReportDialog();
+  if (!reason) return;
 
-    const user = KK.getUser();
+  const user = KK.getUser();
 
-    const report = {
-      type: 'report',
-      productId: productId,
-      productTitle: product.title,
-      reporterName: user ? user.name : 'زائر',
-      reporterPhone: user ? user.phone : '',
-      reportedAt: new Date().toISOString()
-    };
+  const report = {
+    type: 'report',
+    productId: productId,
+    productTitle: product.title,
+    reporterName: user ? user.name : 'زائر',
+    reporterPhone: user ? user.phone : '',
+    reason: reason,
+    reportedAt: new Date().toISOString()
+  };
 
-    try {
-      const response = await fetch('/api/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'report',
-          data: report
-        })
-      });
-      const result = await response.json();
-      if (result.success) {
-        App.toast('✅ تم الإبلاغ، شكراً لك', 'success');
-      } else {
-        App.toast('⚠️ سيتم مراجعة الإبلاغ', 'info');
-      }
-    } catch (e) {
+  try {
+    const response = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'report',
+        data: report
+      })
+    });
+    const result = await response.json();
+    if (result.success) {
+      App.toast('✅ تم الإبلاغ، شكراً لك', 'success');
+    } else {
       App.toast('⚠️ سيتم مراجعة الإبلاغ', 'info');
     }
-  },
+  } catch (e) {
+    App.toast('⚠️ سيتم مراجعة الإبلاغ', 'info');
+  }
+},
+
+/* نافذة اختيار سبب الإبلاغ */
+showReportDialog() {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        modal.remove();
+        resolve(null);
+      }
+    };
+
+    modal.innerHTML = `
+      <div class="modal-box">
+        <div class="modal-title">⚠️ الإبلاغ عن إعلان</div>
+        <div class="modal-subtitle">اختر سبب الإبلاغ</div>
+
+        <div class="report-reasons">
+          <button class="report-reason" data-reason="منتج مزيّف أو مزيف">
+            <span>🚫</span> منتج مزيّف أو مزيف
+          </button>
+          <button class="report-reason" data-reason="محتوى مخالف أو غير لائق">
+            <span>⚠️</span> محتوى مخالف أو غير لائق
+          </button>
+          <button class="report-reason" data-reason="سعر خاطئ أو مضلل">
+            <span>💰</span> سعر خاطئ أو مضلل
+          </button>
+          <button class="report-reason" data-reason="إعلان مكرر">
+            <span>📋</span> إعلان مكرر
+          </button>
+          <button class="report-reason" data-reason="احتيال أو نصب">
+            <span>🚨</span> احتيال أو نصب
+          </button>
+          <button class="report-reason" data-reason="سبب آخر">
+            <span>📝</span> سبب آخر
+          </button>
+        </div>
+
+        <button class="btn btn-secondary btn-full" style="margin-top:15px;" onclick="this.closest('.modal-overlay').remove();">
+          إلغاء
+        </button>
+      </div>
+    `;
+
+    // إضافة التنسيقات
+    const style = document.createElement('style');
+    style.textContent = `
+      .report-reasons {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .report-reason {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+        background: #f8f9fa;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: bold;
+        color: #232f3e;
+        cursor: pointer;
+        transition: 0.2s;
+        text-align: right;
+      }
+      .report-reason:hover, .report-reason:active {
+        background: #fff9f0;
+        border-color: #ff9900;
+      }
+      .report-reason span {
+        font-size: 22px;
+      }
+    `;
+    modal.appendChild(style);
+
+    document.body.appendChild(modal);
+
+    // ربط الأزرار
+    modal.querySelectorAll('.report-reason').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const reason = btn.dataset.reason;
+        modal.remove();
+        resolve(reason);
+      });
+    });
+  });
+},
 
   /* ==========================================
      الصفحة الرئيسية
