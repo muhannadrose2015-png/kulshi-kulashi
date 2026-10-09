@@ -1,13 +1,12 @@
 /* ==========================================
    Cloudflare Function - Telegram Webhook
    المسار: /api/webhook
-   يستقبل ضغطات الأزرار من تليجرام (موافقة/رفض)
+   يستقبل ضغطات الأزرار من تليجرام
    ========================================== */
 
 export async function onRequest(context) {
   const { request, env } = context;
 
-  // تليجرام يرسل POST فقط
   if (request.method !== 'POST') {
     return new Response('OK', { status: 200 });
   }
@@ -15,28 +14,42 @@ export async function onRequest(context) {
   try {
     const update = await request.json();
 
-    // فحص إذا كانت ضغطة زر
     if (!update.callback_query) {
       return new Response('OK', { status: 200 });
     }
 
     const callbackQuery = update.callback_query;
     const data = callbackQuery.data || '';
+    const callbackId = callbackQuery.id;
     const messageId = callbackQuery.message.message_id;
     const chatId = callbackQuery.message.chat.id;
 
     // ===== موافقة =====
     if (data.startsWith('approve_')) {
       const orderCode = data.replace('approve_', '');
-      await handleApprove(orderCode, messageId, chatId, env);
+      await handleApprove(orderCode, callbackId, messageId, chatId, env);
     }
     // ===== رفض =====
     else if (data.startsWith('reject_')) {
       const orderCode = data.replace('reject_', '');
-      await handleReject(orderCode, messageId, chatId, env);
+      await handleReject(orderCode, callbackId, messageId, chatId, env);
+    }
+    // ===== حذف الإعلان (من إبلاغ) =====
+    else if (data.startsWith('delete_ad_')) {
+      const productId = data.replace('delete_ad_', '');
+      await handleDeleteAd(productId, callbackId, messageId, chatId, env);
+    }
+    // ===== تجاهل الإبلاغ =====
+    else if (data.startsWith('dismiss_report_')) {
+      const productId = data.replace('dismiss_report_', '');
+      await handleDismissReport(productId, callbackId, messageId, chatId, env);
+    }
+    // ===== موافقة على حذف إعلان (من صاحب الإعلان) =====
+    else if (data.startsWith('confirm_delete_')) {
+      const productId = data.replace('confirm_delete_', '');
+      await handleDeleteAd(productId, callbackId, messageId, chatId, env);
     }
 
-    // إجابة تليجرام (يجب أن نُجيب حتى لا تظهر رسالة "loading")
     return new Response('OK', { status: 200 });
 
   } catch (e) {
@@ -46,13 +59,12 @@ export async function onRequest(context) {
 }
 
 /* ==========================================
-   معالجة الموافقة
+   الموافقة على نشر إعلان
    ========================================== */
-async function handleApprove(orderCode, messageId, chatId, env) {
+async function handleApprove(orderCode, callbackId, messageId, chatId, env) {
   try {
-    // 1. قراءة الإعلان من KV
     if (!env.VIEWS_KV) {
-      await answerCallback(env, messageId, '❌ خطأ: KV غير مربوط');
+      await answerCallback(env, callbackId, '❌ خطأ: KV غير مربوط');
       return;
     }
 
@@ -60,14 +72,14 @@ async function handleApprove(orderCode, messageId, chatId, env) {
     const adRaw = await env.VIEWS_KV.get(key);
 
     if (!adRaw) {
-      await answerCallback(env, messageId, '❌ لم يتم العثور على الإعلان (ربما انتهت صلاحيته)');
+      await answerCallback(env, callbackId, '❌ الإعلان غير موجود');
       await editMessage(env, chatId, messageId, '❌ لم يتم العثور على الإعلان في المخزن', null);
       return;
     }
 
     const adData = JSON.parse(adRaw);
 
-    // 2. قراءة ads.json الحالي
+    // قراءة ads.json
     const repoFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/ads.json`;
 
     const getResponse = await fetch(repoFile, {
@@ -78,19 +90,15 @@ async function handleApprove(orderCode, messageId, chatId, env) {
       }
     });
 
-    if (!getResponse.ok) {
-      throw new Error('فشل قراءة ads.json من GitHub');
-    }
+    if (!getResponse.ok) throw new Error('فشل قراءة ads.json');
 
     const fileData = await getResponse.json();
     const currentSha = fileData.sha;
 
-    // فك تشفير المحتوى
     const currentContent = JSON.parse(
       decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))))
     );
 
-    // 3. إضافة الإعلان الجديد
     const newAd = {
       id: `ad_${Date.now()}`,
       orderCode: orderCode,
@@ -112,7 +120,6 @@ async function handleApprove(orderCode, messageId, chatId, env) {
 
     currentContent.push(newAd);
 
-    // 4. كتابة الملف الجديد
     const newContent = JSON.stringify(currentContent, null, 2);
     const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
 
@@ -137,10 +144,8 @@ async function handleApprove(orderCode, messageId, chatId, env) {
       throw new Error(errData.message || 'فشل النشر');
     }
 
-    // 5. حذف الإعلان من KV
     await env.VIEWS_KV.delete(key);
 
-    // 6. تعديل الرسالة (إزالة الأزرار + إضافة علامة نجاح)
     await editMessage(
       env,
       chatId,
@@ -149,26 +154,23 @@ async function handleApprove(orderCode, messageId, chatId, env) {
       null
     );
 
-    // 7. إشعار الإجابة
-    await answerCallback(env, messageId, '✅ تم النشر');
+    await answerCallback(env, callbackId, '✅ تم النشر');
 
   } catch (e) {
     console.error('Approve error:', e);
-    await answerCallback(env, messageId, '❌ فشل: ' + e.message);
+    await answerCallback(env, callbackId, '❌ فشل: ' + e.message);
   }
 }
 
 /* ==========================================
-   معالجة الرفض
+   رفض إعلان
    ========================================== */
-async function handleReject(orderCode, messageId, chatId, env) {
+async function handleReject(orderCode, callbackId, messageId, chatId, env) {
   try {
-    // حذف الإعلان من KV
     if (env.VIEWS_KV) {
       await env.VIEWS_KV.delete(`pending_ad:${orderCode}`);
     }
 
-    // تعديل الرسالة
     await editMessage(
       env,
       chatId,
@@ -177,11 +179,111 @@ async function handleReject(orderCode, messageId, chatId, env) {
       null
     );
 
-    await answerCallback(env, messageId, '❌ تم الرفض');
+    await answerCallback(env, callbackId, '❌ تم الرفض');
 
   } catch (e) {
     console.error('Reject error:', e);
-    await answerCallback(env, messageId, '❌ فشل: ' + e.message);
+    await answerCallback(env, callbackId, '❌ فشل: ' + e.message);
+  }
+}
+
+/* ==========================================
+   حذف إعلان من ads.json
+   ========================================== */
+async function handleDeleteAd(productId, callbackId, messageId, chatId, env) {
+  try {
+    // قراءة ads.json
+    const repoFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/ads.json`;
+
+    const getResponse = await fetch(repoFile, {
+      headers: {
+        'Authorization': `token ${env.GITHUB_TOKEN}`,
+        'User-Agent': 'Kulshi-Kulashi',
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!getResponse.ok) throw new Error('فشل قراءة ads.json');
+
+    const fileData = await getResponse.json();
+    const currentSha = fileData.sha;
+
+    const currentContent = JSON.parse(
+      decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))))
+    );
+
+    // فلترة الإعلان المحذوف
+    const filtered = currentContent.filter(ad => String(ad.id) !== String(productId));
+    const wasFound = filtered.length < currentContent.length;
+
+    if (!wasFound) {
+      await editMessage(
+        env,
+        chatId,
+        messageId,
+        '⚠️ <b>الإعلان غير موجود</b>\n\nربما تم حذفه مسبقاً.',
+        null
+      );
+      await answerCallback(env, callbackId, '⚠️ غير موجود');
+      return;
+    }
+
+    const newContent = JSON.stringify(filtered, null, 2);
+    const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
+
+    const putResponse = await fetch(repoFile, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${env.GITHUB_TOKEN}`,
+        'User-Agent': 'Kulshi-Kulashi',
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: `Delete ad ${productId}`,
+        content: encodedContent,
+        sha: currentSha,
+        branch: 'main'
+      })
+    });
+
+    if (!putResponse.ok) {
+      const errData = await putResponse.json();
+      throw new Error(errData.message || 'فشل الحذف');
+    }
+
+    await editMessage(
+      env,
+      chatId,
+      messageId,
+      '🗑️ <b>تم حذف الإعلان بنجاح!</b>\n\nتمت إزالته من الموقع.',
+      null
+    );
+
+    await answerCallback(env, callbackId, '✅ تم الحذف');
+
+  } catch (e) {
+    console.error('Delete error:', e);
+    await answerCallback(env, callbackId, '❌ فشل: ' + e.message);
+  }
+}
+
+/* ==========================================
+   تجاهل الإبلاغ
+   ========================================== */
+async function handleDismissReport(productId, callbackId, messageId, chatId, env) {
+  try {
+    await editMessage(
+      env,
+      chatId,
+      messageId,
+      '✅ <b>تم تجاهل الإبلاغ</b>\n\nالإعلان يبقى كما هو.',
+      null
+    );
+    await answerCallback(env, callbackId, '✅ تم التجاهل');
+  } catch (e) {
+    console.error('Dismiss error:', e);
+    await answerCallback(env, callbackId, '❌ فشل');
   }
 }
 
@@ -189,7 +291,6 @@ async function handleReject(orderCode, messageId, chatId, env) {
    أدوات مساعدة
    ========================================== */
 
-/* الرد على callback (يجب أن يُنفذ خلال 10 ثوان) */
 async function answerCallback(env, callbackQueryId, text) {
   try {
     await fetch(
@@ -208,7 +309,6 @@ async function answerCallback(env, callbackQueryId, text) {
   }
 }
 
-/* تعديل الرسالة (لإزالة الأزرار أو إضافة علامة) */
 async function editMessage(env, chatId, messageId, newText, replyMarkup) {
   try {
     const body = {
