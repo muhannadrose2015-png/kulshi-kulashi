@@ -6,9 +6,14 @@ const Products = {
 
   _cache: null,
   _cacheTime: 0,
-  _cacheDuration: 60 * 1000, // دقيقة واحدة
+  _cacheDuration: 60 * 1000,
+  _viewsCache: null,
+  _viewsCacheTime: 0,
+  _viewsCacheDuration: 5 * 60 * 1000, // 5 دقائق
 
-  /* تحميل كل الإعلانات من ads.json */
+  /* ==========================================
+     تحميل كل الإعلانات من ads.json
+     ========================================== */
   async loadAll(forceRefresh = false) {
     const now = Date.now();
     if (!forceRefresh && this._cache && (now - this._cacheTime) < this._cacheDuration) {
@@ -18,10 +23,8 @@ const Products = {
     const data = await App.fetchJSON('/data/ads.json');
     const ads = Array.isArray(data) ? data : [];
 
-    // فلترة الإعلانات المعطّلة
     const active = ads.filter(ad => ad.status !== 'disabled' && ad.status !== 'rejected');
 
-    // ترتيب حسب التاريخ (الأحدث أولاً)
     active.sort((a, b) => {
       const dateA = new Date(a.createdAt || 0);
       const dateB = new Date(b.createdAt || 0);
@@ -31,25 +34,50 @@ const Products = {
     this._cache = active;
     this._cacheTime = now;
 
-    // حفظ نسخة محلية
-    try { KK.setCachedAds(active); } catch(e) {}
+    try { KK.setCachedAds(active); } catch (e) {}
 
     return active;
   },
 
-  /* الحصول على إعلان بالمعرّف */
+  /* ==========================================
+     تحميل المشاهدات من views.json
+     ========================================== */
+  async loadViews(forceRefresh = false) {
+    const now = Date.now();
+    if (!forceRefresh && this._viewsCache && (now - this._viewsCacheTime) < this._viewsCacheDuration) {
+      return this._viewsCache;
+    }
+
+    try {
+      const data = await App.fetchJSON('/data/views.json');
+      this._viewsCache = (data && typeof data === 'object') ? data : {};
+      this._viewsCacheTime = now;
+      return this._viewsCache;
+    } catch (e) {
+      this._viewsCache = {};
+      return {};
+    }
+  },
+
+  /* الحصول على عدد المشاهدات لمنتج */
+  async getViews(productId) {
+    const views = await this.loadViews();
+    return views[productId] || 0;
+  },
+
+  /* ==========================================
+     دوال أساسية
+     ========================================== */
   async getById(id) {
     const all = await this.loadAll();
     return all.find(p => String(p.id) === String(id));
   },
 
-  /* فلترة حسب الصنف */
   async getByCategory(categoryId) {
     const all = await this.loadAll();
     return all.filter(p => p.category === categoryId);
   },
 
-  /* بحث في العناوين والأوصاف */
   async search(query) {
     if (!query || query.trim().length < 2) return [];
     const all = await this.loadAll();
@@ -61,22 +89,20 @@ const Products = {
     );
   },
 
-  /* الحصول على الأصناف من categories.json */
   async getCategories() {
     const data = await App.fetchJSON('/data/categories.json');
     return Array.isArray(data) ? data : [];
   },
 
-  /* الحصول على اسم الصنف */
   async getCategoryName(categoryId) {
     const cats = await this.getCategories();
     const cat = cats.find(c => c.id === categoryId);
     return cat ? cat.name : categoryId;
   },
 
-  /* ============ دوال العرض ============ */
-
-  /* عرض شبكة إعلانات */
+  /* ==========================================
+     دوال العرض
+     ========================================== */
   async renderGrid(containerId, products) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -86,12 +112,14 @@ const Products = {
       return;
     }
 
+    // نُحمّل المشاهدات مرة واحدة قبل العرض
+    const views = await this.loadViews();
+
     container.innerHTML = products
-      .map(p => App.productCardHTML(p))
+      .map(p => App.productCardHTML(p, views[p.id] || 0))
       .join('');
   },
 
-  /* HTML حالة الفراغ */
   emptyStateHTML(message = 'لا توجد إعلانات حالياً') {
     return `
       <div class="empty-state" style="grid-column: 1 / -1;">
@@ -102,8 +130,9 @@ const Products = {
     `;
   },
 
-  /* ============ صفحة الصنف ============ */
-
+  /* ==========================================
+     صفحة الصنف
+     ========================================== */
   async initCategoryPage() {
     const categoryId = App.getURLParam('cat');
     const searchQuery = App.getURLParam('q');
@@ -113,7 +142,6 @@ const Products = {
 
     if (!gridEl) return;
 
-    // حالة البحث
     if (searchQuery) {
       if (titleEl) titleEl.textContent = `🔍 نتائج البحث: ${searchQuery}`;
       const results = await this.search(searchQuery);
@@ -121,7 +149,6 @@ const Products = {
       return;
     }
 
-    // حالة الصنف
     if (categoryId) {
       const catName = await this.getCategoryName(categoryId);
       if (titleEl) titleEl.textContent = catName;
@@ -129,19 +156,15 @@ const Products = {
 
       const products = await this.getByCategory(categoryId);
       await this.renderGrid('categoryGrid', products);
-
-      // تفعيل فلتر الأحدث/الأرخص
       this.setupFilters(products);
       return;
     }
 
-    // لا صنف ولا بحث - عرض الكل
     if (titleEl) titleEl.textContent = 'كل الإعلانات';
     const all = await this.loadAll();
     await this.renderGrid('categoryGrid', all);
   },
 
-  /* إعداد الفلاتر (ترتيب) */
   setupFilters(products) {
     const filtersEl = document.getElementById('filtersBar');
     if (!filtersEl) return;
@@ -173,8 +196,9 @@ const Products = {
     });
   },
 
-  /* ============ صفحة المنتج ============ */
-
+  /* ==========================================
+     صفحة المنتج
+     ========================================== */
   async initProductPage() {
     const productId = App.getURLParam('id');
     const bodyEl = document.getElementById('productBody');
@@ -194,8 +218,33 @@ const Products = {
     }
 
     document.title = product.title + ' - كلشي كلاشي';
+
+    // تسجيل مشاهدة (لا ننتظر النتيجة)
+    this.trackView(productId);
+
     this.renderProductDetails(product);
     await this.renderSimilar(product);
+  },
+
+  /* تسجيل مشاهدة في Cloudflare KV */
+  async trackView(productId) {
+    try {
+      const sessionKey = 'kk_viewed_' + productId;
+      if (sessionStorage.getItem(sessionKey)) return;
+
+      const response = await fetch('/api/view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: productId })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        sessionStorage.setItem(sessionKey, '1');
+      }
+    } catch (e) {
+      console.error('فشل تسجيل المشاهدة:', e);
+    }
   },
 
   /* عرض تفاصيل المنتج */
@@ -241,21 +290,20 @@ const Products = {
           ` : ''}
 
           <div class="product-actions">
-  <a href="${waLink}" target="_blank" class="btn btn-whatsapp">
-    💬 تواصل عبر واتساب
-  </a>
-  <button class="btn btn-report" onclick="Products.shareProduct('${product.id}')">
-    📤 مشاركة
-  </button>
-  <button class="btn btn-report" onclick="Products.reportProduct('${product.id}')">
-    ⚠️ إبلاغ
-  </button>
-</div>
+            <a href="${waLink}" target="_blank" class="btn btn-whatsapp">
+              💬 تواصل عبر واتساب
+            </a>
+            <button class="btn btn-report" onclick="Products.shareProduct('${product.id}')">
+              📤 مشاركة
+            </button>
+            <button class="btn btn-report" onclick="Products.reportProduct('${product.id}')">
+              ⚠️ إبلاغ
+            </button>
+          </div>
         </div>
       </div>
     `;
 
-    // تفعيل مصغرات الصور
     const thumbs = bodyEl.querySelectorAll('.gallery-thumb');
     thumbs.forEach(thumb => {
       thumb.addEventListener('click', () => {
@@ -265,6 +313,34 @@ const Products = {
         thumb.classList.add('active');
       });
     });
+  },
+
+  /* مشاركة المنتج */
+  async shareProduct(productId) {
+    const product = await this.getById(productId);
+    if (!product) return;
+
+    const url = window.location.href;
+    const text = `🛒 ${product.title}\n💰 ${App.formatPrice(product.price, product.currency)}\n\nشاهد على كلشي كلاشي:`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.title,
+          text: text,
+          url: url
+        });
+      } catch (e) {
+        // المستخدم ألغى
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        App.toast('✅ تم نسخ الرابط', 'success');
+      } catch (e) {
+        App.toast('انسخ الرابط يدوياً: ' + url, 'info');
+      }
+    }
   },
 
   /* منتجات مشابهة */
@@ -282,44 +358,16 @@ const Products = {
       return;
     }
 
+    const views = await this.loadViews();
+
     similarEl.innerHTML = `
       <h2 class="section-title">🔎 إعلانات مشابهة</h2>
       <div class="products-grid">
-        ${similar.map(p => App.productCardHTML(p)).join('')}
+        ${similar.map(p => App.productCardHTML(p, views[p.id] || 0)).join('')}
       </div>
     `;
   },
 
-   /* مشاركة المنتج */
-async shareProduct(productId) {
-  const product = await this.getById(productId);
-  if (!product) return;
-
-  const url = window.location.href;
-  const text = `🛒 ${product.title}\n💰 ${App.formatPrice(product.price, product.currency)}\n\nشاهد على كلشي كلاشي:`;
-
-  if (navigator.share) {
-    // مشاركة عبر Web Share API (يعمل على الجوال)
-    try {
-      await navigator.share({
-        title: product.title,
-        text: text,
-        url: url
-      });
-    } catch (e) {
-      // المستخدم ألغى المشاركة - لا نفعل شيئاً
-    }
-  } else {
-    // نسخ الرابط كبديل
-    try {
-      await navigator.clipboard.writeText(url);
-      App.toast('✅ تم نسخ الرابط', 'success');
-    } catch (e) {
-      App.toast('انسخ الرابط يدوياً: ' + url, 'info');
-    }
-  }
-},
-   
   /* الإبلاغ عن منتج */
   async reportProduct(productId) {
     if (!confirm('هل تريد الإبلاغ عن هذا الإعلان؟')) return;
@@ -338,7 +386,6 @@ async shareProduct(productId) {
       reportedAt: new Date().toISOString()
     };
 
-    // إرسال إلى تليجرام
     try {
       const response = await fetch('/api/submit', {
         method: 'POST',
@@ -359,19 +406,16 @@ async shareProduct(productId) {
     }
   },
 
-  /* ============ الصفحة الرئيسية ============ */
-
+  /* ==========================================
+     الصفحة الرئيسية
+     ========================================== */
   async initHomePage() {
-    // عرض الأصناف
     await this.renderCategories();
-
-    // عرض أحدث الإعلانات
     const all = await this.loadAll();
     const latest = all.slice(0, 8);
     await this.renderGrid('latestProducts', latest);
   },
 
-  /* عرض الأصناف */
   async renderCategories() {
     const gridEl = document.getElementById('categoriesGrid');
     if (!gridEl) return;
