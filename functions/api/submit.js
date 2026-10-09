@@ -41,10 +41,21 @@ export async function onRequest(context) {
     const { action, data } = body;
 
     let message = '';
+    let replyMarkup = null;
 
     /* ===== إعلان جديد ===== */
     if (action === 'new_ad') {
       message = formatNewAd(data);
+
+      // أزرار الموافقة/الرفض
+      replyMarkup = {
+        inline_keyboard: [
+          [
+            { text: '✅ موافقة ونشر', callback_data: `approve_${data.orderCode}` },
+            { text: '❌ رفض', callback_data: `reject_${data.orderCode}` }
+          ]
+        ]
+      };
     }
     /* ===== إبلاغ عن إعلان ===== */
     else if (action === 'report') {
@@ -69,17 +80,23 @@ export async function onRequest(context) {
     }
 
     // إرسال إلى تليجرام
+    const tgBody = {
+      chat_id: env.TELEGRAM_CHAT_ID,
+      text: message,
+      parse_mode: 'HTML',
+      disable_web_page_preview: false
+    };
+
+    if (replyMarkup) {
+      tgBody.reply_markup = replyMarkup;
+    }
+
     const tgResponse = await fetch(
       `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: env.TELEGRAM_CHAT_ID,
-          text: message,
-          parse_mode: 'HTML',
-          disable_web_page_preview: false
-        })
+        body: JSON.stringify(tgBody)
       }
     );
 
@@ -178,7 +195,7 @@ function formatNewAd(data) {
   }
 
   msg += `\n⏰ ${new Date().toLocaleString('ar-IQ')}`;
-  msg += `\n\n<b>للإضافة إلى ads.json بعد المراجعة</b>`;
+  msg += `\n\n<b>اضغط موافقة للنشر أو رفض للإلغاء</b>`;
 
   return msg;
 }
