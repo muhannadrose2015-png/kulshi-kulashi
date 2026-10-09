@@ -249,7 +249,13 @@ function formatReport(data) {
     msg += `<b>📱 الهاتف:</b> ${escapeHTML(data.reporterPhone)}\n`;
   }
 
+  if (data.reason) {
+    msg += `\n<b>📋 سبب الإبلاغ:</b>\n${escapeHTML(data.reason)}\n`;
+  }
+
   msg += `\n⏰ ${new Date().toLocaleString('ar-IQ')}`;
+  msg += `\n\n<b>اختر الإجراء:</b>`;
+
   return msg;
 }
 
