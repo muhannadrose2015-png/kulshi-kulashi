@@ -124,6 +124,12 @@
     color: var(--primary);
   }
 
+  .btn-track {
+    background: #fff9f0;
+    color: var(--accent);
+    border: 1px solid #ffe0b2;
+  }
+
   .btn-delete {
     background: #ffebee;
     color: var(--danger);
@@ -295,7 +301,8 @@ async function renderMyAds() {
           </div>
           <div class="order-actions">
             <button class="btn-view" onclick="viewOrder('${order.code}')">👁️ عرض</button>
-            <button class="btn-delete" onclick="requestDelete('${order.code}')">🗑️ طلب حذف</button>
+            <button class="btn-track" onclick="trackOrder('${order.code}')">🔍 تتبع</button>
+            <button class="btn-delete" onclick="Submit.deleteOrder('${order.code}')">🗑️ حذف</button>
           </div>
         </div>
       </div>
@@ -331,7 +338,7 @@ function viewOrder(code) {
   modal.innerHTML = `
     <div class="modal-box">
       <div class="modal-title">تفاصيل الإعلان</div>
-      <div style="margin-bottom:15px;">
+      <div style="margin-bottom:15px; text-align:center;">
         <span class="order-code-badge" style="display:inline-block;">${order.code}</span>
       </div>
       ${images.length > 0 ? `
@@ -350,21 +357,15 @@ function viewOrder(code) {
   document.body.appendChild(modal);
 }
 
-/* ===== طلب حذف ===== */
-function requestDelete(code) {
-  const orders = KK.getMyOrders();
-  const order = orders.find(o => o.code === code);
-  if (!order) return;
-
-  if (!confirm('هل تريد إرسال طلب حذف هذا الإعلان للإدارة؟')) return;
-
-  Submit.requestDelete(order.code, order.title);
+/* ===== تتبع الطلب ===== */
+function trackOrder(code) {
+  window.location.href = '/track.html?code=' + encodeURIComponent(code);
 }
 
 /* ===== البحث ===== */
 function doSearch() {
-  const query = document.getElementById('searchInput').value.trim();
-  if (query.length < 2) {
+  const query = document.getElementById('searchInput')?.value.trim();
+  if (!query || query.length < 2) {
     App.toast('اكتب على الأقل حرفين للبحث', 'info');
     return;
   }
