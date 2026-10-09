@@ -80,13 +80,13 @@
   .contact-info {
     background: rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    padding: 18px;
+    padding: 20px;
     margin-top: 20px;
   }
 
   .contact-info h3 {
-    font-size: 15px;
-    margin-bottom: 10px;
+    font-size: 16px;
+    margin-bottom: 15px;
     color: #ffcccb;
   }
 
@@ -94,12 +94,55 @@
     font-size: 13px;
     opacity: 0.85;
     line-height: 1.7;
+    margin-bottom: 15px;
   }
 
-  .contact-info a {
-    color: #ffcccb;
+  /* ===== أزرار التواصل ===== */
+  .contact-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .contact-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-radius: 10px;
+    text-decoration: none;
     font-weight: bold;
-    text-decoration: underline;
+    font-size: 15px;
+    transition: 0.2s;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .contact-btn:active {
+    transform: scale(0.97);
+  }
+
+  .btn-whatsapp {
+    background: #25D366;
+  }
+
+  .btn-whatsapp:hover {
+    background: #1da851;
+  }
+
+  .btn-telegram {
+    background: #0088cc;
+  }
+
+  .btn-telegram:hover {
+    background: #006699;
+  }
+
+  .contact-btn-icon {
+    font-size: 20px;
   }
 
   .footer-note {
@@ -127,10 +170,23 @@
 
   <div class="contact-info">
     <h3>📩 إذا كنت تعتقد أن هذا خطأ</h3>
-    <p>
-      تواصل معنا عبر البوت في تليجرام:<br>
-      <a href="https://t.me/Baya33bot" target="_blank">@Baya33bot</a>
-    </p>
+    <p>تواصل معنا مباشرة:</p>
+
+    <div class="contact-buttons">
+      <a href="https://wa.me/9647856761412?text=مرحباً،%20تم%20حظر%20حسابي%20في%20كلشي%20كلاشي%20وأريد%20الاستفسار" 
+         target="_blank" 
+         class="contact-btn btn-whatsapp">
+        <span class="contact-btn-icon">💬</span>
+        <span>تواصل عبر واتساب</span>
+      </a>
+
+      <a href="https://t.me/Baya33bot" 
+         target="_blank" 
+         class="contact-btn btn-telegram">
+        <span class="contact-btn-icon">✈️</span>
+        <span>تواصل عبر تليجرام</span>
+      </a>
+    </div>
   </div>
 
   <div class="footer-note">
@@ -142,17 +198,13 @@
 <script src="/js/app.js"></script>
 
 <script>
-/* ===== عرض بيانات المستخدم المحظور (إن وُجدت) ===== */
+/* ===== عرض سبب الحظر (إن وُجد) ===== */
 (async function init() {
-  // إذا كان هناك سبب في الرابط، اعرضه
   const reason = App.getURLParam('reason');
   if (reason) {
     document.getElementById('reasonBox').style.display = 'block';
     document.getElementById('reasonText').textContent = decodeURIComponent(reason);
   }
-
-  // إذا كان هناك مستخدم محلي، حاول حذف بياناته (اختياري)
-  // (لا نحذف تلقائياً حتى لا يستطيع العودة بإعادة التسجيل)
 })();
 </script>
 
