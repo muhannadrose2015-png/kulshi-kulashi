@@ -78,16 +78,31 @@ const Products = {
     return all.filter(p => p.category === categoryId);
   },
 
-  async search(query) {
-    if (!query || query.trim().length < 2) return [];
-    const all = await this.loadAll();
-    const q = query.trim().toLowerCase();
-    return all.filter(p =>
-      (p.title && p.title.toLowerCase().includes(q)) ||
-      (p.description && p.description.toLowerCase().includes(q)) ||
-      (p.city && p.city.toLowerCase().includes(q))
-    );
-  },
+  /* تطبيع النص العربي (إزالة الهمزات والحركات) */
+normalizeArabic(text) {
+  if (!text) return '';
+  return String(text)
+    .toLowerCase()
+    .replace(/[أإآا]/g, 'ا')
+    .replace(/[ىي]/g, 'ي')
+    .replace(/[ةه]/g, 'ه')
+    .replace(/[ًٌٍَُِّْـ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+},
+
+async search(query) {
+  if (!query || query.trim().length < 2) return [];
+  const all = await this.loadAll();
+  const q = this.normalizeArabic(query);
+
+  return all.filter(p => {
+    const title = this.normalizeArabic(p.title);
+    const description = this.normalizeArabic(p.description);
+    const city = this.normalizeArabic(p.city);
+    return title.includes(q) || description.includes(q) || city.includes(q);
+  });
+},
 
   async getCategories() {
     const data = await App.fetchJSON('/data/categories.json');
