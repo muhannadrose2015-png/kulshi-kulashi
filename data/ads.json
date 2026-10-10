@@ -72,7 +72,10 @@
     "status": "active",
     "views": 0,
     "createdAt": "2026-10-09T16:47:23.194Z",
-    "publishedAt": "2026-10-09T16:47:23.194Z"
+    "publishedAt": "2026-10-09T16:47:23.194Z",
+    "sold": true,
+    "soldAt": "2026-10-10T21:37:27.942Z",
+    "updatedAt": "2026-10-10T21:37:27.942Z"
   },
   {
     "id": "ad_1791617276757",
