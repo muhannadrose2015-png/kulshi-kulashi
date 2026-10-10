@@ -97,5 +97,29 @@
     "views": 0,
     "createdAt": "2026-10-10T07:27:56.757Z",
     "publishedAt": "2026-10-10T07:27:56.757Z"
+  },
+  {
+    "id": "ad_1791661930417",
+    "orderCode": "KK-2026-1147",
+    "title": "مكات مجسمة",
+    "category": "home",
+    "price": 5000,
+    "currency": "IQD",
+    "description": "اكواب مجسمة احجام كبيرة",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791661601282_9315.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791661603838_9802.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791661606409_5809.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791661609020_7743.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791661611651_7402.jpg"
+    ],
+    "city": "قضاء عنه",
+    "whatsapp": "07876554461",
+    "ownerName": "Roro Zuhair",
+    "ownerPhone": "07876554461",
+    "status": "active",
+    "views": 0,
+    "createdAt": "2026-10-10T19:52:10.417Z",
+    "publishedAt": "2026-10-10T19:52:10.417Z"
   }
 ]
