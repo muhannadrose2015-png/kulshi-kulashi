@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#232f3e">
+<title>تواصل معنا - كلشي كلاشي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<style>
+  .contact-hero {
+    background: linear-gradient(135deg, #232f3e 0%, #37475a 100%);
+    color: white;
+    padding: 35px 20px;
+    border-radius: 15px;
+    text-align: center;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .contact-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(255,153,0,0.15) 0%, transparent 60%);
+  }
+
+  .contact-hero-icon {
+    font-size: 60px;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .contact-hero h1 {
+    font-size: 24px;
+    color: #ff9900;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .contact-hero p {
+    font-size: 14px;
+    opacity: 0.9;
+    max-width: 400px;
+    margin: 0 auto;
+    line-height: 1.7;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ===== بطاقات التواصل ===== */
+  .contact-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
+  }
+
+  .contact-card {
+    background: white;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    text-decoration: none;
+    color: inherit;
+    transition: 0.2s;
+    border-right: 4px solid var(--accent);
+  }
+
+  .contact-card:active {
+    transform: scale(0.98);
+  }
+
+  .contact-card.whatsapp {
+    border-right-color: #25D366;
+  }
+
+  .contact-card.telegram {
+    border-right-color: #0088cc;
+  }
+
+  .contact-card.email {
+    border-right-color: #ea4335;
+  }
+
+  .contact-card-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+
+  .contact-card.whatsapp .contact-card-icon {
+    background: #e8f9ed;
+    color: #25D366;
+  }
+
+  .contact-card.telegram .contact-card-icon {
+    background: #e5f4fb;
+    color: #0088cc;
+  }
+
+  .contact-card.email .contact-card-icon {
+    background: #fce9e7;
+    color: #ea4335;
+  }
+
+  .contact-card-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .contact-card-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 3px;
+  }
+
+  .contact-card-desc {
+    font-size: 12px;
+    color: var(--text-light);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .contact-card-arrow {
+    font-size: 20px;
+    color: #ccc;
+    flex-shrink: 0;
+  }
+
+  /* ===== معلومات إضافية ===== */
+  .info-section {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+
+  .info-section h2 {
+    color: var(--primary);
+    font-size: 17px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .info-list {
+    list-style: none;
+  }
+
+  .info-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #444;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .info-list li:last-child {
+    border-bottom: none;
+  }
+
+  .info-list li::before {
+    content: '✅';
+    flex-shrink: 0;
+    font-size: 15px;
+  }
+
+  /* ===== FAQ ===== */
+  .faq-item {
+    background: #fafafa;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .faq-item:active {
+    background: #f0f0f0;
+  }
+
+  .faq-question {
+    padding: 14px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .faq-question-icon {
+    color: var(--accent);
+    font-size: 16px;
+    transition: 0.2s;
+  }
+
+  .faq-item.open .faq-question-icon {
+    transform: rotate(90deg);
+  }
+
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s;
+    padding: 0 16px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #666;
+  }
+
+  .faq-item.open .faq-answer {
+    max-height: 500px;
+    padding-bottom: 16px;
+  }
+
+  /* ===== CTA ===== */
+  .contact-cta {
+    background: linear-gradient(135deg, #fff9f0 0%, #fff3e0 100%);
+    border: 2px dashed var(--accent);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .contact-cta h3 {
+    color: var(--primary);
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+
+  .contact-cta p {
+    color: #666;
+    font-size: 13px;
+    margin-bottom: 15px;
+  }
+</style>
+</head>
+<body>
+
+<!-- الهيدر -->
+<header class="header">
+  <div class="header-top">
+    <a href="/" class="logo">
+      <img src="/images/logo.png" alt="كلشي كلاشي">
+      <span class="logo-text">كلشي كلاشي</span>
+    </a>
+    <div class="header-user" id="headerUser">...</div>
+  </div>
+</header>
+
+<!-- المحتوى -->
+<main class="container">
+
+  <div class="page-header">
+    <a href="/" class="back-btn">→</a>
+    <h1>📞 تواصل معنا</h1>
+  </div>
+
+  <!-- Hero -->
+  <div class="contact-hero">
+    <div class="contact-hero-icon">💬</div>
+    <h1>نحن هنا لمساعدتك</h1>
+    <p>هل لديك سؤال أو استفسار؟ فريقنا جاهز للرد عليك في أي وقت</p>
+  </div>
+
+  <!-- بطاقات التواصل -->
+  <div class="contact-cards">
+
+    <!-- واتساب -->
+    <a href="https://wa.me/9647856761412?text=مرحباً،%20لدي%20استفسار%20حول%20موقع%20كلشي%20كلاشي" 
+       target="_blank" 
+       class="contact-card whatsapp">
+      <div class="contact-card-icon">💬</div>
+      <div class="contact-card-info">
+        <div class="contact-card-title">واتساب</div>
+        <div class="contact-card-desc">07856761412</div>
+      </div>
+      <div class="contact-card-arrow">←</div>
+    </a>
+
+    <!-- تليجرام -->
+    <a href="https://t.me/Baya33bot" 
+       target="_blank" 
+       class="contact-card telegram">
+      <div class="contact-card-icon">✈️</div>
+      <div class="contact-card-info">
+        <div class="contact-card-title">تليجرام</div>
+        <div class="contact-card-desc">@Baya33bot</div>
+      </div>
+      <div class="contact-card-arrow">←</div>
+    </a>
+
+    <!-- البريد الإلكتروني -->
+    <a href="mailto:muhannadrose2015@gmail.com?subject=استفسار%20حول%20كلشي%20كلاشي" 
+       class="contact-card email">
+      <div class="contact-card-icon">✉️</div>
+      <div class="contact-card-info">
+        <div class="contact-card-title">البريد الإلكتروني</div>
+        <div class="contact-card-desc">muhannadrose2015@gmail.com</div>
+      </div>
+      <div class="contact-card-arrow">←</div>
+    </a>
+
+  </div>
+
+  <!-- متى نتجاوب؟ -->
+  <div class="info-section">
+    <h2>⏰ متى نستجيب؟</h2>
+    <ul class="info-list">
+      <li>نرد عادة خلال <strong>ساعة واحدة</strong> في أوقات الذروة</li>
+      <li>خلال ساعات العمل: من <strong>9 صباحاً</strong> حتى <strong>11 مساءً</strong></li>
+      <li>في الحالات العاجلة، تواصل عبر <strong>واتساب</strong></li>
+    </ul>
+  </div>
+
+  <!-- الأسئلة الشائعة -->
+  <div class="info-section">
+    <h2>❓ الأسئلة الشائعة</h2>
+
+    <div class="faq-item" onclick="toggleFAQ(this)">
+      <div class="faq-question">
+        <span class="faq-question-icon">◀</span>
+        كيف أضيف إعلاناً؟
+      </div>
+      <div class="faq-answer">
+        اذهب لصفحة "إضافة"، املأ البيانات (العنوان، الصور، السعر، الوصف)، ثم اضغط "إرسال الإعلان". سيتم مراجعته ونشره خلال ساعات.
+      </div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFAQ(this)">
+      <div class="faq-question">
+        <span class="faq-question-icon">◀</span>
+        هل النشر مجاني؟
+      </div>
+      <div class="faq-answer">
+        نعم، النشر مجاني تماماً 100% بدون أي رسوم خفية. الموقع مجاني للجميع.
+      </div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFAQ(this)">
+      <div class="faq-question">
+        <span class="faq-question-icon">◀</span>
+        كم يستغرق نشر الإعلان؟
+      </div>
+      <div class="faq-answer">
+        عادة خلال 1-6 ساعات. نراجع كل إعلان للتأكد من جودته ومنع المحتوى المخالف.
+      </div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFAQ(this)">
+      <div class="faq-question">
+        <span class="faq-question-icon">◀</span>
+        كيف أحذف إعلاني؟
+      </div>
+      <div class="faq-answer">
+        من صفحة "إعلاناتي"، اضغط زر "🗑️ حذف" بجانب الإعلان. سيُحذف من جهازك فوراً، وسيُرسل طلب للإدارة لحذفه من الموقع.
+      </div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFAQ(this)">
+      <div class="faq-question">
+        <span class="faq-question-icon">◀</span>
+        كيف أتواصل مع البائع؟
+      </div>
+      <div class="faq-answer">
+        افتح الإعلان واضغط زر "💬 تواصل عبر واتساب"، سيفتح واتساب مباشرة مع البائع.
+      </div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFAQ(this)">
+      <div class="faq-question">
+        <span class="faq-question-icon">◀</span>
+        وجدت إعلاناً مخالفاً، ماذا أفعل؟
+      </div>
+      <div class="faq-answer">
+        افتح الإعلان واضغط "⚠️ إبلاغ"، اختر السبب. سنراجع الإعلان ونتخذ الإجراء المناسب.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CTA -->
+  <div class="contact-cta">
+    <h3>🚀 ابدأ الآن</h3>
+    <p>أضف إعلانك الأول مجاناً</p>
+    <a href="/add.html" class="btn btn-primary">➕ أضف إعلانك</a>
+  </div>
+
+</main>
+
+<!-- شريط التنقل السفلي -->
+<nav class="bottom-nav">
+  <a href="/" class="nav-item">
+    <span class="nav-icon">🏠</span>
+    <span>الرئيسية</span>
+  </a>
+  <a href="/category.html" class="nav-item">
+    <span class="nav-icon">📂</span>
+    <span>الأصناف</span>
+  </a>
+  <a href="/add.html" class="nav-item">
+    <span class="nav-icon">➕</span>
+    <span>إضافة</span>
+  </a>
+  <a href="/my-ads.html" class="nav-item">
+    <span class="nav-icon">📋</span>
+    <span>إعلاناتي</span>
+  </a>
+</nav>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">الرئيسية</a>
+    <a href="/about.html">من نحن</a>
+    <a href="/contact.html">تواصل معنا</a>
+    <a href="/add.html">أضف إعلان</a>
+  </div>
+  <p>© 2026 كلشي كلاشي - جميع الحقوق محفوظة</p>
+</footer>
+
+<!-- السكربتات -->
+<script src="/js/storage.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/ban.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/pwa.js"></script>
+
+<script>
+(async function init() {
+  await Ban.checkPageAccess();
+  Auth.renderUserHeader();
+  await Auth.requireRegistration();
+  Auth.renderUserHeader();
+})();
+
+/* تفعيل/إغلاق الأسئلة الشائعة */
+function toggleFAQ(el) {
+  el.classList.toggle('open');
+}
+</script>
+
+</body>
+</html>
