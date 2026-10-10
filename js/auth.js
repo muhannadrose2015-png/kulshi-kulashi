@@ -1,26 +1,34 @@
 /* ==========================================
-   auth.js - نظام المستخدم المبسط
+   auth.js - نظام المستخدم المبسط + التصفح كزائر
    ========================================== */
 
 const Auth = {
+
+  /* هل المستخدم مسجل؟ */
+  isRegistered() {
+    const user = KK.getUser();
+    return !!(user && user.name && user.phone);
+  },
 
   /* الحصول على المستخدم الحالي */
   getCurrentUser() {
     return KK.getUser();
   },
 
-  /* هل المستخدم مسجل؟ */
-  isRegistered() {
-    const user = this.getCurrentUser();
-    return !!(user && user.name && user.phone);
+  /* ===== للتصفح الحر (بدون طلب تسجيل) ===== */
+  browseAsGuest() {
+    // لا نفعل شيئاً - المستخدم يتصفح بحرية
+    // اسمه في الهيدر يظهر "زائر"
   },
 
-  /* طلب التسجيل (يظهر نافذة إذا لم يكن مسجلاً) */
+  /* ===== طلب التسجيل فقط عند الحاجة ===== */
   async requireRegistration() {
+    // إذا كان مسجلاً → لا نفعل شيئاً
     if (this.isRegistered()) {
       return this.getCurrentUser();
     }
 
+    // إذا كان زائراً → نعرض النافذة
     return new Promise((resolve) => {
       this.showRegisterModal(resolve);
     });
@@ -28,7 +36,6 @@ const Auth = {
 
   /* عرض نافذة التسجيل */
   showRegisterModal(onComplete) {
-    // إزالة أي نافذة موجودة
     const existing = document.getElementById('registerModal');
     if (existing) existing.remove();
 
@@ -39,7 +46,7 @@ const Auth = {
       <div class="modal-box">
         <div class="modal-title">👋 مرحباً بك في كلشي كلاشي</div>
         <div class="modal-subtitle">
-          أدخل بياناتك لنتمكن من التواصل معك<br>
+          أدخل بياناتك للاستمرار<br>
           <span style="font-size:11px;color:#999;">تُحفظ على جهازك فقط</span>
         </div>
         <form id="registerForm">
@@ -57,6 +64,10 @@ const Auth = {
           <button type="submit" class="btn btn-primary btn-full" style="margin-top:15px;">
             ✅ تسجيل ومتابعة
           </button>
+
+          <button type="button" class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="document.getElementById('registerModal').remove();">
+            تصفح بدون تسجيل
+          </button>
         </form>
       </div>
     `;
@@ -69,7 +80,6 @@ const Auth = {
       this.submitRegistration(onComplete);
     });
 
-    // التركيز على الحقل الأول
     setTimeout(() => document.getElementById('regName').focus(), 100);
   },
 
@@ -82,20 +92,17 @@ const Auth = {
 
     errorEl.textContent = '';
 
-    // التحقق من الاسم
     if (name.length < 2) {
       errorEl.textContent = '❌ الاسم قصير جداً';
       return;
     }
 
-    // التحقق من رقم الهاتف
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     if (cleanPhone.length < 10 || cleanPhone.length > 13) {
       errorEl.textContent = '❌ رقم الهاتف غير صحيح';
       return;
     }
 
-    // فحص الحظر
     if (window.Ban && Ban.isBanned(name, phone)) {
       errorEl.textContent = '🚫 أنت محظور من استخدام الموقع';
       setTimeout(() => {
@@ -104,7 +111,6 @@ const Auth = {
       return;
     }
 
-    // حفظ المستخدم
     const user = {
       name: name,
       phone: cleanPhone,
@@ -121,6 +127,20 @@ const Auth = {
     }
   },
 
+  /* ===== عرض اسم المستخدم في الهيدر ===== */
+  renderUserHeader() {
+    const user = this.getCurrentUser();
+    const el = document.getElementById('headerUser');
+    if (!el) return;
+
+    if (user && user.name) {
+      el.innerHTML = `👤 <strong>${App.escapeHTML(user.name)}</strong>`;
+    } else {
+      // زائر
+      el.innerHTML = `<a href="#" onclick="Auth.showRegisterModal(() => location.reload()); return false;" style="color:#ff9900;text-decoration:none;">تسجيل الدخول</a>`;
+    }
+  },
+
   /* تحديث بيانات المستخدم */
   updateUser(updates) {
     const user = this.getCurrentUser();
@@ -129,24 +149,11 @@ const Auth = {
     return KK.setUser(updated);
   },
 
-  /* تسجيل خروج المستخدم */
+  /* تسجيل خروج */
   logout() {
     if (confirm('هل تريد تسجيل الخروج؟ ستحتاج لإدخال بياناتك مرة أخرى.')) {
       KK.clearUser();
       location.reload();
-    }
-  },
-
-  /* عرض بيانات المستخدم في الهيدر */
-  renderUserHeader() {
-    const user = this.getCurrentUser();
-    const el = document.getElementById('headerUser');
-    if (!el) return;
-
-    if (user) {
-      el.innerHTML = `👤 <strong>${App.escapeHTML(user.name)}</strong>`;
-    } else {
-      el.innerHTML = `<a href="#" onclick="Auth.showRegisterModal(() => location.reload()); return false;" style="color:#ff9900;text-decoration:none;">تسجيل الدخول</a>`;
     }
   }
 };
