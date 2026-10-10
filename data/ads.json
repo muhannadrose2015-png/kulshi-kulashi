@@ -145,5 +145,28 @@
     "views": 0,
     "createdAt": "2026-10-10T19:52:15.635Z",
     "publishedAt": "2026-10-10T19:52:15.635Z"
+  },
+  {
+    "id": "ad_1791662773553",
+    "orderCode": "KK-2026-8056",
+    "title": "مصباح منضدي شحن",
+    "category": "electronics",
+    "price": 5000,
+    "currency": "IQD",
+    "description": "مصباح منضدي بثلاث اضاءات شحن .\n-ابيض\n-اصفر\n-ابيض+اصفر\n\nالنظافة جديد والتوصيل مجاني داخل الفلوجة .",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791662711056_8656.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791662712624_583.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791662714524_5639.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791662716257_3147.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07510711584",
+    "ownerName": "مهند زهير",
+    "ownerPhone": "07856761412",
+    "status": "active",
+    "views": 0,
+    "createdAt": "2026-10-10T20:06:13.553Z",
+    "publishedAt": "2026-10-10T20:06:13.553Z"
   }
 ]
