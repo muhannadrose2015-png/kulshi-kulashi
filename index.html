@@ -10,6 +10,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
+  <link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" href="/images/logo.png">
+<link rel="apple-touch-icon" href="/images/logo.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="كلشي كلاشي">
+<meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
 
@@ -122,6 +129,98 @@ document.getElementById('searchInput').addEventListener('keypress', (e) => {
   if (e.key === 'Enter') doSearch();
 });
 </script>
+<!-- PWA: تسجيل Service Worker + إشعار التثبيت -->
+<script>
+/* ===== تسجيل Service Worker ===== */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then((reg) => console.log('✅ SW registered:', reg.scope))
+      .catch((err) => console.log('❌ SW failed:', err));
+  });
+}
 
+/* ===== إشعار التثبيت المخصص ===== */
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  // عرض الإشعار المخصص بعد 3 ثوانٍ
+  setTimeout(() => {
+    showInstallBanner();
+  }, 3000);
+});
+
+function showInstallBanner() {
+  // لا نعرض الإشعار إذا كان مثبتاً أو تم إغلاقه اليوم
+  if (window.matchMedia('(display-mode: standalone)').matches) return;
+
+  const lastDismissed = localStorage.getItem('kk_install_dismissed');
+  if (lastDismissed && (Date.now() - parseInt(lastDismissed)) < 7 * 24 * 60 * 60 * 1000) {
+    return; // تم إغلاقه آخر 7 أيام
+  }
+
+  // إنشاء الإشعار
+  const banner = document.createElement('div');
+  banner.id = 'installBanner';
+  banner.innerHTML = `
+    <div class="install-banner-content">
+      <img src="/images/logo.png" alt="كلشي كلاشي" class="install-logo">
+      <div class="install-text">
+        <div class="install-title">ثبّت تطبيق كلشي كلاشي</div>
+        <div class="install-desc">للوصول السريع من شاشة جوالك</div>
+      </div>
+      <div class="install-buttons">
+        <button class="install-btn-later" onclick="dismissInstallBanner()">لاحقاً</button>
+        <button class="install-btn-go" onclick="installPWA()">تثبيت</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(banner);
+
+  setTimeout(() => banner.classList.add('show'), 100);
+}
+
+async function installPWA() {
+  if (!deferredPrompt) {
+    // قد يكون المستخدم يستخدم Safari (لا يدعم beforeinstallprompt)
+    showIOSInstructions();
+    return;
+  }
+
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+
+  if (outcome === 'accepted') {
+    App.toast('✅ تم التثبيت بنجاح', 'success');
+  }
+
+  deferredPrompt = null;
+  dismissInstallBanner();
+}
+
+function dismissInstallBanner() {
+  const banner = document.getElementById('installBanner');
+  if (banner) {
+    banner.classList.remove('show');
+    setTimeout(() => banner.remove(), 300);
+  }
+  localStorage.setItem('kk_install_dismissed', Date.now().toString());
+}
+
+/* تعليمات iOS (لأن Safari لا يدعم التثبيت التلقائي) */
+function showIOSInstructions() {
+  alert('📱 لتثبيت التطبيق على iPhone/iPad:\n\n1. اضغط على زر المشاركة ⬆️ في الأسفل\n2. اختر "إضافة إلى الشاشة الرئيسية"\n3. اضغط "إضافة"');
+  dismissInstallBanner();
+}
+
+/* إخفاء الإشعار إذا تم التثبيت */
+window.addEventListener('appinstalled', () => {
+  App.toast('🎉 شكراً لتثبيت التطبيق!', 'success');
+  dismissInstallBanner();
+});
+</script>
 </body>
 </html>
