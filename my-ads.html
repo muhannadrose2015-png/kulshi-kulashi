@@ -183,7 +183,10 @@
     <a href="/" class="back-btn">→</a>
     <h1>📋 إعلاناتي</h1>
   </div>
-
+  
+<!-- قسم بيانات المستخدم -->
+<div id="userSettingsBox"></div>
+  
   <!-- شريط الإحصائيات -->
   <div class="stats-bar" id="statsBar">
     <div class="stat-item">
@@ -237,15 +240,20 @@
 <script src="/js/auth.js"></script>
 <script src="/js/products.js"></script>
 <script src="/js/submit.js"></script>
+  <script src="/js/settings.js"></script>
 
 <script>
-/* ===== تشغيل الصفحة ===== */
+  
 (async function init() {
   try {
     await Ban.checkPageAccess();
     Auth.renderUserHeader();
     await Auth.requireRegistration();
     Auth.renderUserHeader();
+
+    // عرض قسم بيانات المستخدم
+    Settings.renderUserBox('userSettingsBox');
+
     await renderMyAds();
   } catch (e) {
     console.error('Init error:', e);
