@@ -912,10 +912,56 @@ body {
   direction: ltr;
 }
 
+
 .review-comment {
   font-size: 13px;
   line-height: 1.7;
   color: #444;
   margin-top: 8px;
   word-wrap: break-word;
+}
+
+/* ==========================================
+   بطاقة تقييم المستخدم (المميزة)
+   ========================================== */
+.user-review-card {
+  background: linear-gradient(135deg, #fff9f0 0%, #fff3e0 100%);
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 20px;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(255, 153, 0, 0.15);
+}
+
+.user-review-badge {
+  position: absolute;
+  top: -12px;
+  right: 15px;
+  background: var(--accent);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(255, 153, 0, 0.4);
+}
+
+.user-review-card .review-header {
+  margin-top: 5px;
+}
+
+.user-review-card .review-avatar {
+  background: var(--accent);
+  box-shadow: 0 2px 6px rgba(255, 153, 0, 0.3);
+}
+
+.user-review-actions {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.user-review-actions .btn {
+  padding: 8px 20px;
+  font-size: 13px;
 }
