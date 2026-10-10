@@ -965,3 +965,82 @@ body {
   padding: 8px 20px;
   font-size: 13px;
 }
+
+/* ==========================================
+   قسم بيانات المستخدم
+   ========================================== */
+.user-settings-box {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-right: 4px solid var(--accent);
+}
+
+.user-settings-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.user-settings-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.user-settings-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-settings-name {
+  font-weight: bold;
+  font-size: 15px;
+  color: var(--primary);
+  margin-bottom: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-settings-phone,
+.user-settings-city {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-bottom: 2px;
+}
+
+.btn-edit-settings {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-edit-settings:active {
+  background: #e88a00;
+  transform: scale(0.97);
+}
