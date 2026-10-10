@@ -73,5 +73,29 @@
     "views": 0,
     "createdAt": "2026-10-09T16:47:23.194Z",
     "publishedAt": "2026-10-09T16:47:23.194Z"
+  },
+  {
+    "id": "ad_1791617276757",
+    "orderCode": "KK-2026-2905",
+    "title": "دشداشة نسائي كشمير",
+    "category": "fashion",
+    "price": 10000,
+    "currency": "IQD",
+    "description": "موديلات هوايه متوفره وقياسات كشمير مكفول",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791616661047_6411.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791616662707_1450.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791616664212_8517.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791616666028_7019.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791616667614_9503.jpg"
+    ],
+    "city": "الانبار عامرية الفلوجه المجمع",
+    "whatsapp": "07805267598",
+    "ownerName": "شيماء زهير احمد",
+    "ownerPhone": "07805267598",
+    "status": "active",
+    "views": 0,
+    "createdAt": "2026-10-10T07:27:56.757Z",
+    "publishedAt": "2026-10-10T07:27:56.757Z"
   }
 ]
