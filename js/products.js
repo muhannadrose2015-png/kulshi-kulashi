@@ -244,71 +244,89 @@ const Products = {
   },
 
   renderProductDetails(product) {
-    const bodyEl = document.getElementById('productBody');
-    const images = (product.images && product.images.length)
-      ? product.images
-      : ['data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23999">📷</text></svg>'];
+  const bodyEl = document.getElementById('productBody');
+  const images = (product.images && product.images.length)
+    ? product.images
+    : ['data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23999">📷</text></svg>'];
 
-    const price = App.formatPrice(product.price, product.currency);
-    const waLink = App.whatsappLink(
-      product.whatsapp || product.ownerPhone,
-      `مرحباً، مهتم بـ: ${product.title}`
-    );
+  const price = App.formatPrice(product.price, product.currency);
+  const isSold = product.sold === true;
 
-    bodyEl.innerHTML = `
-      <div class="product-details">
-        <div class="product-gallery">
-          <img id="mainImage" src="${images[0]}" alt="${App.escapeHTML(product.title)}">
+  const waLink = App.whatsappLink(
+    product.whatsapp || product.ownerPhone,
+    `مرحباً، مهتم بـ: ${product.title}`
+  );
+
+  // معالجة حالة "تم البيع"
+  const soldBanner = isSold ? `
+    <div class="sold-banner">
+      <div class="sold-banner-icon">🔴</div>
+      <div class="sold-banner-content">
+        <div class="sold-banner-title">تم بيع هذا المنتج</div>
+        <div class="sold-banner-subtitle">قد يكون هناك منتجات مشابهة في نفس الصنف</div>
+      </div>
+    </div>
+  ` : '';
+
+  // زر واتساب (معطّل إذا تم البيع)
+  const waButton = isSold
+    ? `<button class="btn btn-whatsapp disabled" disabled>💬 المنتج مباع</button>`
+    : `<a href="${waLink}" target="_blank" class="btn btn-whatsapp">💬 تواصل عبر واتساب</a>`;
+
+  bodyEl.innerHTML = `
+    <div class="product-details ${isSold ? 'is-sold' : ''}">
+      ${soldBanner}
+      <div class="product-gallery">
+        <img id="mainImage" src="${images[0]}" alt="${App.escapeHTML(product.title)}">
+        ${isSold ? `<div class="sold-overlay-large">🔴 تم البيع</div>` : ''}
+      </div>
+      ${images.length > 1 ? `
+        <div class="gallery-thumbs">
+          ${images.map((img, i) => `
+            <div class="gallery-thumb ${i === 0 ? 'active' : ''}" data-index="${i}">
+              <img src="${img}" alt="صورة ${i+1}">
+            </div>
+          `).join('')}
         </div>
-        ${images.length > 1 ? `
-          <div class="gallery-thumbs">
-            ${images.map((img, i) => `
-              <div class="gallery-thumb ${i === 0 ? 'active' : ''}" data-index="${i}">
-                <img src="${img}" alt="صورة ${i+1}">
-              </div>
-            `).join('')}
-          </div>
+      ` : ''}
+
+      <div class="product-body">
+        <h1 class="product-detail-title">${App.escapeHTML(product.title)}</h1>
+        <div class="product-detail-price">${price}</div>
+
+        <div class="product-meta">
+          ${product.city ? `<div class="meta-item">📍 ${App.escapeHTML(product.city)}</div>` : ''}
+          ${product.createdAt ? `<div class="meta-item">🕐 ${App.formatDate(product.createdAt)}</div>` : ''}
+          ${product.ownerName ? `<div class="meta-item">👤 ${App.escapeHTML(product.ownerName)}</div>` : ''}
+        </div>
+
+        ${product.description ? `
+          <div class="product-description">${App.escapeHTML(product.description)}</div>
         ` : ''}
 
-        <div class="product-body">
-          <h1 class="product-detail-title">${App.escapeHTML(product.title)}</h1>
-          <div class="product-detail-price">${price}</div>
-
-          <div class="product-meta">
-            ${product.city ? `<div class="meta-item">📍 ${App.escapeHTML(product.city)}</div>` : ''}
-            ${product.createdAt ? `<div class="meta-item">🕐 ${App.formatDate(product.createdAt)}</div>` : ''}
-            ${product.ownerName ? `<div class="meta-item">👤 ${App.escapeHTML(product.ownerName)}</div>` : ''}
-          </div>
-
-          ${product.description ? `
-            <div class="product-description">${App.escapeHTML(product.description)}</div>
-          ` : ''}
-
-          <div class="product-actions">
-            <a href="${waLink}" target="_blank" class="btn btn-whatsapp">
-              💬 تواصل عبر واتساب
-            </a>
-            <button class="btn btn-report" onclick="Products.shareProduct('${product.id}')">
-              📤 مشاركة
-            </button>
-            <button class="btn btn-report" onclick="Products.reportProduct('${product.id}')">
-              ⚠️ إبلاغ
-            </button>
-          </div>
+        <div class="product-actions">
+          ${waButton}
+          <button class="btn btn-report" onclick="Products.shareProduct('${product.id}')">
+            📤 مشاركة
+          </button>
+          <button class="btn btn-report" onclick="Products.reportProduct('${product.id}')">
+            ⚠️ إبلاغ
+          </button>
         </div>
       </div>
-    `;
+    </div>
+  `;
 
-    const thumbs = bodyEl.querySelectorAll('.gallery-thumb');
-    thumbs.forEach(thumb => {
-      thumb.addEventListener('click', () => {
-        const idx = parseInt(thumb.dataset.index);
-        document.getElementById('mainImage').src = images[idx];
-        thumbs.forEach(t => t.classList.remove('active'));
-        thumb.classList.add('active');
-      });
+  const thumbs = bodyEl.querySelectorAll('.gallery-thumb');
+  thumbs.forEach(thumb => {
+    thumb.addEventListener('click', () => {
+      const idx = parseInt(thumb.dataset.index);
+      document.getElementById('mainImage').src = images[idx];
+      thumbs.forEach(t => t.classList.remove('active'));
+      thumb.classList.add('active');
     });
-  },
+  });
+},
 
   async shareProduct(productId) {
     const product = await this.getById(productId);
