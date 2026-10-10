@@ -1228,7 +1228,7 @@ body {
 .sold-overlay-large {
   position: absolute;
   inset: 0;
-  background: rgba(211, 47, 47, 0.6);
+  background: rgba(211, 47, 47, 0.35);
   color: white;
   display: flex;
   align-items: center;
