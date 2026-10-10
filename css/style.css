@@ -1162,3 +1162,103 @@ body {
 .btn-unsold:active {
   background: #fff3e0;
 }
+
+/* ==========================================
+   شريط "تم البيع" - البطاقات
+   ========================================== */
+.product-card.sold .product-image-wrap img {
+  filter: grayscale(60%) brightness(0.85);
+}
+
+.sold-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(211, 47, 47, 0.75);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 1px;
+  z-index: 3;
+  backdrop-filter: blur(2px);
+}
+
+/* ==========================================
+   شريط "تم البيع" - صفحة المنتج
+   ========================================== */
+.sold-banner {
+  background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+  color: white;
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 3px solid #8b0000;
+}
+
+.sold-banner-icon {
+  font-size: 40px;
+  flex-shrink: 0;
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.sold-banner-content {
+  flex: 1;
+}
+
+.sold-banner-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.sold-banner-subtitle {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.sold-overlay-large {
+  position: absolute;
+  inset: 0;
+  background: rgba(211, 47, 47, 0.6);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  z-index: 2;
+  backdrop-filter: blur(3px);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.product-gallery {
+  position: relative;
+}
+
+.product-details.is-sold .product-detail-price {
+  color: #999;
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.product-details.is-sold .product-description {
+  opacity: 0.7;
+}
+
+/* زر واتساب المعطّل */
+.btn-whatsapp.disabled {
+  background: #cccccc !important;
+  cursor: not-allowed;
+  opacity: 0.7;
+  pointer-events: none;
+}
