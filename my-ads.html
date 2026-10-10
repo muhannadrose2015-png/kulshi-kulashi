@@ -101,6 +101,11 @@
     color: #721c24;
   }
 
+  .status-sold {
+    background: #f8d7da;
+    color: #721c24;
+  }
+
   .order-actions {
     display: flex;
     gap: 6px;
@@ -133,6 +138,18 @@
   .btn-delete {
     background: #ffebee;
     color: var(--danger);
+  }
+
+  .btn-sold {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #4caf50;
+  }
+
+  .btn-unsold {
+    background: #fff9f0;
+    color: #856404;
+    border: 1px solid #ff9900;
   }
 
   .stats-bar {
@@ -184,8 +201,8 @@
     <h1>📋 إعلاناتي</h1>
   </div>
   
-<!-- قسم بيانات المستخدم -->
-<div id="userSettingsBox"></div>
+  <!-- قسم بيانات المستخدم -->
+  <div id="userSettingsBox"></div>
   
   <!-- شريط الإحصائيات -->
   <div class="stats-bar" id="statsBar">
@@ -240,7 +257,7 @@
 <script src="/js/auth.js"></script>
 <script src="/js/products.js"></script>
 <script src="/js/submit.js"></script>
-  <script src="/js/settings.js"></script>
+<script src="/js/settings.js"></script>
 
 <script>
   
@@ -298,7 +315,17 @@ async function renderMyAds() {
       : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23999">📷</text></svg>';
 
     const price = App.formatPrice(order.price, order.currency);
-    const statusInfo = getStatusInfo(order.status);
+    const statusInfo = getStatusInfo(order.status, order.sold);
+
+    // أزرار البيع (فقط للإعلانات المنشورة وغير المباعة)
+    let soldButtons = '';
+    if (order.status === 'approved') {
+      if (order.sold) {
+        soldButtons = `<button class="btn-unsold" onclick="unmarkSold('${order.code}')">↩️ إلغاء البيع</button>`;
+      } else {
+        soldButtons = `<button class="btn-sold" onclick="markSold('${order.code}')">✅ تم البيع</button>`;
+      }
+    }
 
     return `
       <div class="order-card">
@@ -319,6 +346,7 @@ async function renderMyAds() {
           <div class="order-actions">
             <button class="btn-view" onclick="viewOrder('${order.code}')">👁️ عرض</button>
             <button class="btn-track" onclick="trackOrder('${order.code}')">🔍 تتبع</button>
+            ${soldButtons}
             <button class="btn-delete" onclick="Submit.deleteOrder('${order.code}')">🗑️ حذف</button>
           </div>
         </div>
@@ -346,7 +374,24 @@ async function syncOrderStatuses() {
         if (published) {
           order.status = 'approved';
           order.publishedAt = published.publishedAt || published.createdAt;
+          // نحفظ حالة البيع من ads.json
+          order.sold = !!published.sold;
+          order.soldAt = published.soldAt || null;
           changed = true;
+        }
+      } else if (order.status === 'approved') {
+        // نُحدّث حالة البيع إذا تغيّرت
+        const published = allAds.find(ad =>
+          ad.orderCode === order.code ||
+          String(ad.id) === String(order.code)
+        );
+        if (published) {
+          const newSold = !!published.sold;
+          if (order.sold !== newSold) {
+            order.sold = newSold;
+            order.soldAt = published.soldAt || null;
+            changed = true;
+          }
         }
       }
     });
@@ -360,7 +405,10 @@ async function syncOrderStatuses() {
 }
 
 /* ===== حالة الطلب ===== */
-function getStatusInfo(status) {
+function getStatusInfo(status, sold) {
+  if (status === 'approved' && sold) {
+    return { class: 'status-sold', icon: '💰', text: 'تم البيع' };
+  }
   switch (status) {
     case 'approved':
       return { class: 'status-approved', icon: '✅', text: 'منشور' };
@@ -409,6 +457,151 @@ function viewOrder(code) {
 /* ===== تتبع الطلب ===== */
 function trackOrder(code) {
   window.location.href = '/track.html?code=' + encodeURIComponent(code);
+}
+
+/* ==========================================
+   نظام "تم البيع"
+   ========================================== */
+async function markSold(orderCode) {
+  const orders = KK.getMyOrders();
+  const order = orders.find(o => o.code === orderCode);
+  if (!order) return;
+
+  const user = KK.getUser();
+  if (!user) {
+    App.toast('يجب تسجيل الدخول', 'error');
+    return;
+  }
+
+  const confirmed = await showConfirmDialog({
+    title: '✅ تم البيع',
+    message: `هل تم بيع "${order.title}" فعلاً؟\n\nسيظهر الإعلان للجميع كـ "تم البيع" ويُحذف تلقائياً بعد 7 أيام.`,
+    confirmText: '✅ نعم، تم البيع',
+    cancelText: 'إلغاء',
+    type: 'success'
+  });
+
+  if (!confirmed) return;
+
+  App.toast('⏳ جارٍ التعليم...', 'info');
+
+  try {
+    const response = await fetch('/api/mark-sold', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId: orderCode,
+        userPhone: user.phone,
+        action: 'mark'
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      order.sold = true;
+      order.soldAt = new Date().toISOString();
+      localStorage.setItem(KK.KEYS.MY_ORDERS, JSON.stringify(orders));
+
+      App.toast('✅ تم تعليم الإعلان كمباع', 'success');
+      await renderMyAds();
+    } else {
+      App.toast('❌ ' + (data.error || 'فشل التعليم'), 'error');
+    }
+  } catch (e) {
+    console.error('Mark sold error:', e);
+    App.toast('❌ فشل الاتصال', 'error');
+  }
+}
+
+async function unmarkSold(orderCode) {
+  const orders = KK.getMyOrders();
+  const order = orders.find(o => o.code === orderCode);
+  if (!order) return;
+
+  const user = KK.getUser();
+  if (!user) return;
+
+  const confirmed = await showConfirmDialog({
+    title: '↩️ إلغاء "تم البيع"',
+    message: `هل تريد إلغاء تعليم "${order.title}" كمباع؟\n\nسيعود الإعلان متوفراً للبيع.`,
+    confirmText: '↩️ نعم، إلغاء البيع',
+    cancelText: 'تراجع',
+    type: 'warning'
+  });
+
+  if (!confirmed) return;
+
+  App.toast('⏳ جارٍ الإلغاء...', 'info');
+
+  try {
+    const response = await fetch('/api/mark-sold', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId: orderCode,
+        userPhone: user.phone,
+        action: 'unmark'
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      order.sold = false;
+      delete order.soldAt;
+      localStorage.setItem(KK.KEYS.MY_ORDERS, JSON.stringify(orders));
+
+      App.toast('✅ تم إلغاء البيع', 'success');
+      await renderMyAds();
+    } else {
+      App.toast('❌ ' + (data.error || 'فشل الإلغاء'), 'error');
+    }
+  } catch (e) {
+    console.error('Unmark sold error:', e);
+    App.toast('❌ فشل الاتصال', 'error');
+  }
+}
+
+/* ===== نافذة تأكيد أنيقة ===== */
+function showConfirmDialog({ title, message, confirmText, cancelText, type }) {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.onclick = (e) => { if (e.target === modal) { modal.remove(); resolve(false); } };
+
+    const colors = {
+      success: { bg: '#e8f5e9', color: '#2e7d32', btn: '#4caf50', icon: '✅' },
+      warning: { bg: '#fff9f0', color: '#856404', btn: '#ff9900', icon: '↩️' },
+      danger: { bg: '#ffebee', color: '#c62828', btn: '#d32f2f', icon: '⚠️' }
+    };
+    const c = colors[type] || colors.success;
+
+    modal.innerHTML = `
+      <div class="modal-box" style="text-align:center;">
+        <div style="background:${c.bg};color:${c.color};padding:20px;border-radius:12px;margin-bottom:15px;">
+          <div style="font-size:40px;margin-bottom:10px;">${c.icon}</div>
+          <div style="font-weight:bold;font-size:16px;margin-bottom:8px;">${title}</div>
+          <div style="font-size:13px;line-height:1.7;white-space:pre-line;">${message}</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary" style="flex:1;background:#e7e9ec;color:#232f3e;padding:12px;border:none;border-radius:8px;font-family:inherit;font-weight:bold;cursor:pointer;" onclick="this.closest('.modal-overlay').remove(); window.__confirmResolver(false);">
+            ${cancelText || 'إلغاء'}
+          </button>
+          <button class="btn" style="flex:2;background:${c.btn};color:white;padding:12px;border:none;border-radius:8px;font-family:inherit;font-weight:bold;cursor:pointer;" onclick="this.closest('.modal-overlay').remove(); window.__confirmResolver(true);">
+            ${confirmText || 'موافق'}
+          </button>
+        </div>
+      </div>
+    `;
+
+    window.__confirmResolver = (result) => {
+      resolve(result);
+      delete window.__confirmResolver;
+    };
+
+    document.body.appendChild(modal);
+  });
 }
 
 /* ===== البحث ===== */
