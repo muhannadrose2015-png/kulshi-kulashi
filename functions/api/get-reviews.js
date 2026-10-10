@@ -1,6 +1,6 @@
 /* ==========================================
    Cloudflare Function - جلب تقييمات إعلان
-   المسار: /api/get-reviews?id=xxx
+   المسار: /api/get-reviews?id=xxx&phone=xxx
    ========================================== */
 
 export async function onRequest(context) {
@@ -29,6 +29,7 @@ export async function onRequest(context) {
 
     const url = new URL(request.url);
     const productId = url.searchParams.get('id');
+    const userPhone = url.searchParams.get('phone') || '';
 
     if (!productId) {
       return new Response(JSON.stringify({
@@ -50,7 +51,8 @@ export async function onRequest(context) {
         success: true,
         reviews: [],
         average: 0,
-        total: 0
+        total: 0,
+        userReview: null
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -58,36 +60,50 @@ export async function onRequest(context) {
 
     const index = JSON.parse(indexRaw);
     const reviews = [];
+    let userReview = null;
 
     // جلب كل تقييم
     for (const key of index) {
       const raw = await env.REVIEWS_KV.get(key);
       if (raw) {
         try {
-          reviews.push(JSON.parse(raw));
+          const review = JSON.parse(raw);
+          review._key = key;
+
+          // هل هذا تقييم المستخدم الحالي؟
+          const isOwner = userPhone && review.reviewerPhone === userPhone;
+          review.isOwner = isOwner;
+
+          if (isOwner) {
+            userReview = review;
+          } else {
+            reviews.push(review);
+          }
         } catch (e) {}
       }
     }
 
-    // ترتيب: الأحدث أولاً
+    // ترتيب باقي التقييمات: الأحدث أولاً
     reviews.sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
+      const dateA = new Date(a.updatedAt || a.createdAt || 0);
+      const dateB = new Date(b.updatedAt || b.createdAt || 0);
       return dateB - dateA;
     });
 
-    // حساب المتوسط
+    // حساب المتوسط (بما في ذلك تقييم المستخدم)
+    const allReviews = userReview ? [userReview, ...reviews] : reviews;
     let average = 0;
-    if (reviews.length > 0) {
-      const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
-      average = Math.round((sum / reviews.length) * 10) / 10;
+    if (allReviews.length > 0) {
+      const sum = allReviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+      average = Math.round((sum / allReviews.length) * 10) / 10;
     }
 
     return new Response(JSON.stringify({
       success: true,
+      userReview: userReview,
       reviews: reviews,
       average: average,
-      total: reviews.length
+      total: allReviews.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
