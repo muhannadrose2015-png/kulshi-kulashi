@@ -149,20 +149,21 @@ const App = {
   },
 
   /* إنشاء بطاقة منتج HTML */
-  /* إنشاء بطاقة منتج HTML */
-productCardHTML(product, views = 0) {
+  productCardHTML(product, views = 0) {
   const img = (product.images && product.images[0])
     ? product.images[0]
     : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23999">📷</text></svg>';
 
   const price = this.formatPrice(product.price, product.currency);
   const location = product.city || '';
+  const isSold = product.sold === true;
 
   return `
-    <a href="/product.html?id=${product.id}" class="product-card">
+    <a href="/product.html?id=${product.id}" class="product-card ${isSold ? 'sold' : ''}">
       <div class="product-image-wrap">
         <img src="${img}" alt="${this.escapeHTML(product.title)}" loading="lazy">
-        ${views > 0 ? `<div class="views-badge">👁️ ${views}</div>` : ''}
+        ${views > 0 && !isSold ? `<div class="views-badge">👁️ ${views}</div>` : ''}
+        ${isSold ? `<div class="sold-overlay">🔴 تم البيع</div>` : ''}
       </div>
       <div class="product-info">
         <div class="product-title">${this.escapeHTML(product.title)}</div>
