@@ -274,5 +274,31 @@
     "isFeatured": false,
     "createdAt": "2026-10-11T18:58:30.505Z",
     "publishedAt": "2026-10-11T18:58:30.505Z"
+  },
+  {
+    "id": "ad_1791748759879",
+    "orderCode": "KK-2026-3112",
+    "title": "مكات مجسمة",
+    "category": "home",
+    "price": 5000,
+    "currency": "IQD",
+    "description": "مكات احجامها كبيرة مامبينه بالتصوير ترهم مقلمه او ديكور او للقهوة",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791748692021_4693.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791748694975_4401.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791748697996_9899.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791748700560_2616.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791748703508_4281.jpg"
+    ],
+    "city": "قضاء عنه",
+    "whatsapp": "07876554461",
+    "ownerName": "Roro Zuhair",
+    "ownerPhone": "07876554461",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "isFeatured": false,
+    "createdAt": "2026-10-11T19:59:19.879Z",
+    "publishedAt": "2026-10-11T19:59:19.879Z"
   }
 ]
