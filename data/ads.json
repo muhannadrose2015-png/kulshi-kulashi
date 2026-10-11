@@ -185,5 +185,27 @@
     "isFeatured": false,
     "createdAt": "2026-10-11T18:41:39.276Z",
     "publishedAt": "2026-10-11T18:41:39.276Z"
+  },
+  {
+    "id": "ad_1791744115823",
+    "orderCode": "KK-2026-9947",
+    "title": "هاند بلندر OHOK",
+    "category": "home",
+    "price": 6000,
+    "currency": "IQD",
+    "description": "هاند بلندر OHOK \nسرعتين \nبقوة 300w",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791743751766_3291.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07851131155",
+    "ownerName": "ابو خالد",
+    "ownerPhone": "07851131155",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "isFeatured": false,
+    "createdAt": "2026-10-11T18:41:55.823Z",
+    "publishedAt": "2026-10-11T18:41:55.823Z"
   }
 ]
