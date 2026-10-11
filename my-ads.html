@@ -253,6 +253,8 @@
     <!-- قسم بيانات المستخدم -->
     <div id="userSettingsBox"></div>
 
+    <!-- قسم الحد الأسبوعي -->
+<div id="quotaBox"></div>
     <!-- شريط الإحصائيات -->
     <div class="stats-bar" id="statsBar">
       <div class="stat-item">
@@ -308,7 +310,7 @@
 <script src="/js/products.js"></script>
 <script src="/js/submit.js"></script>
 <script src="/js/settings.js"></script>
-
+<script src="/js/quota.js"></script>
 <script>
 /* ===== تشغيل الصفحة ===== */
 (async function init() {
@@ -328,10 +330,13 @@
     document.getElementById('registeredContent').style.display = 'block';
 
     // عرض قسم بيانات المستخدم
-    Settings.renderUserBox('userSettingsBox');
+Settings.renderUserBox('userSettingsBox');
 
-    // عرض الإعلانات
-    await renderMyAds();
+// عرض الحد الأسبوعي
+await Quota.render('quotaBox');
+
+// عرض الإعلانات
+await renderMyAds();
   } catch (e) {
     console.error('Init error:', e);
     const container = document.getElementById('ordersList');
