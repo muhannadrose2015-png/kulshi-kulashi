@@ -267,6 +267,19 @@ const Products = {
     `مرحباً، مهتم بـ: ${product.title}`
   );
 
+     const isFeatured = product.isFeatured === true && !isSold;
+
+// شارة التمييز
+const featuredBanner = isFeatured ? `
+  <div class="featured-banner">
+    <div class="featured-banner-icon">⭐</div>
+    <div class="featured-banner-content">
+      <div class="featured-banner-title">إعلان مميز</div>
+      <div class="featured-banner-subtitle">إعلان مدفوع - عرض في المقدمة</div>
+    </div>
+  </div>
+` : '';
+
   // معالجة حالة "تم البيع"
   const soldBanner = isSold ? `
     <div class="sold-banner">
@@ -284,8 +297,9 @@ const Products = {
     : `<a href="${waLink}" target="_blank" class="btn btn-whatsapp">💬 تواصل عبر واتساب</a>`;
 
   bodyEl.innerHTML = `
-    <div class="product-details ${isSold ? 'is-sold' : ''}">
-      ${soldBanner}
+  <div class="product-details ${isSold ? 'is-sold' : ''} ${isFeatured ? 'is-featured' : ''}">
+    ${featuredBanner}
+    ${soldBanner}
       <div class="product-gallery">
         <img id="mainImage" src="${images[0]}" alt="${App.escapeHTML(product.title)}">
         ${isSold ? `<div class="sold-overlay-large">🔴 تم البيع</div>` : ''}
