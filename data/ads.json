@@ -119,5 +119,27 @@
     "isFeatured": true,
     "featuredAt": "2026-10-11T17:46:00.157Z",
     "featuredUntil": "2026-10-21T17:46:00.157Z"
+  },
+  {
+    "id": "ad_1791741273743",
+    "orderCode": "KK-2026-6664",
+    "title": "جهاز تدليك عميق",
+    "category": "other",
+    "price": 10000,
+    "currency": "IQD",
+    "description": "جهاز تدليك العضلات العميق \n- كابل الشحن \n- 4 رؤوس تدليك \n- 6 سرعات\nمن ماركة BENBO",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791741234917_9944.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07851131155",
+    "ownerName": "ابو خالد",
+    "ownerPhone": "07851131155",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "isFeatured": false,
+    "createdAt": "2026-10-11T17:54:33.743Z",
+    "publishedAt": "2026-10-11T17:54:33.743Z"
   }
 ]
