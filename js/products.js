@@ -13,29 +13,39 @@ const Products = {
 
   /* ===== تحميل الإعلانات ===== */
   async loadAll(forceRefresh = false) {
-    const now = Date.now();
-    if (!forceRefresh && this._cache && (now - this._cacheTime) < this._cacheDuration) {
-      return this._cache;
+  const now = Date.now();
+  if (!forceRefresh && this._cache && (now - this._cacheTime) < this._cacheDuration) {
+    return this._cache;
+  }
+
+  const data = await App.fetchJSON('/data/ads.json');
+  const ads = Array.isArray(data) ? data : [];
+
+  const active = ads.filter(ad => ad.status !== 'disabled' && ad.status !== 'rejected');
+
+  // ترتيب: المميز أولاً، ثم الأحدث
+  active.sort((a, b) => {
+    // المميز قبل العادي
+    const aFeatured = a.isFeatured === true ? 1 : 0;
+    const bFeatured = b.isFeatured === true ? 1 : 0;
+
+    if (aFeatured !== bFeatured) {
+      return bFeatured - aFeatured;
     }
 
-    const data = await App.fetchJSON('/data/ads.json');
-    const ads = Array.isArray(data) ? data : [];
+    // ثم الأحدث أولاً
+    const dateA = new Date(a.createdAt || 0);
+    const dateB = new Date(b.createdAt || 0);
+    return dateB - dateA;
+  });
 
-    const active = ads.filter(ad => ad.status !== 'disabled' && ad.status !== 'rejected');
+  this._cache = active;
+  this._cacheTime = now;
 
-    active.sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0);
-      const dateB = new Date(b.createdAt || 0);
-      return dateB - dateA;
-    });
+  try { KK.setCachedAds(active); } catch (e) {}
 
-    this._cache = active;
-    this._cacheTime = now;
-
-    try { KK.setCachedAds(active); } catch (e) {}
-
-    return active;
-  },
+  return active;
+},
 
   /* ===== تحميل المشاهدات ===== */
   async loadViews(forceRefresh = false) {
