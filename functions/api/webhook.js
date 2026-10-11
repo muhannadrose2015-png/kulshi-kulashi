@@ -1,7 +1,6 @@
 /* ==========================================
    Cloudflare Function - Telegram Webhook
    المسار: /api/webhook
-   يستقبل ضغطات الأزرار من تليجرام
    ========================================== */
 
 export async function onRequest(context) {
@@ -18,36 +17,48 @@ export async function onRequest(context) {
       return new Response('OK', { status: 200 });
     }
 
-    const callbackQuery = update.callback_query;
-    const data = callbackQuery.data || '';
-    const callbackId = callbackQuery.id;
-    const messageId = callbackQuery.message.message_id;
-    const chatId = callbackQuery.message.chat.id;
+    const cq = update.callback_query;
+    const data = cq.data || '';
+    const callbackId = cq.id;
+    const messageId = cq.message.message_id;
+    const chatId = cq.message.chat.id;
 
-    // ===== موافقة =====
-    if (data.startsWith('approve_')) {
+    // ===== قبول/رفض إعلان جديد =====
+    if (data.startsWith('approve_') && !data.includes('promote_') && !data.includes('subscribe_')) {
       const orderCode = data.replace('approve_', '');
       await handleApprove(orderCode, callbackId, messageId, chatId, env);
     }
-    // ===== رفض =====
-    else if (data.startsWith('reject_')) {
+    else if (data.startsWith('reject_') && !data.includes('promote_') && !data.includes('subscribe_')) {
       const orderCode = data.replace('reject_', '');
       await handleReject(orderCode, callbackId, messageId, chatId, env);
     }
-    // ===== حذف الإعلان (من إبلاغ) =====
+    // ===== حذف إعلان من إبلاغ =====
     else if (data.startsWith('delete_ad_')) {
       const productId = data.replace('delete_ad_', '');
       await handleDeleteAd(productId, callbackId, messageId, chatId, env);
     }
-    // ===== تجاهل الإبلاغ =====
+    // ===== تجاهل إبلاغ =====
     else if (data.startsWith('dismiss_report_')) {
       const productId = data.replace('dismiss_report_', '');
       await handleDismissReport(productId, callbackId, messageId, chatId, env);
     }
-    // ===== موافقة على حذف إعلان (من صاحب الإعلان) =====
-    else if (data.startsWith('confirm_delete_')) {
-      const productId = data.replace('confirm_delete_', '');
-      await handleDeleteAd(productId, callbackId, messageId, chatId, env);
+    // ===== ترقية إعلان =====
+    else if (data.startsWith('approve_promote_')) {
+      const orderCode = data.replace('approve_promote_', '');
+      await handleApprovePromote(orderCode, callbackId, messageId, chatId, env);
+    }
+    else if (data.startsWith('reject_promote_')) {
+      const orderCode = data.replace('reject_promote_', '');
+      await handleRejectAction('رفض الترقية', orderCode, callbackId, messageId, chatId, env);
+    }
+    // ===== اشتراك شهري =====
+    else if (data.startsWith('approve_subscribe_')) {
+      const phone = data.replace('approve_subscribe_', '');
+      await handleApproveSubscribe(phone, callbackId, messageId, chatId, env);
+    }
+    else if (data.startsWith('reject_subscribe_')) {
+      const phone = data.replace('reject_subscribe_', '');
+      await handleRejectAction('رفض الاشتراك', phone, callbackId, messageId, chatId, env);
     }
 
     return new Response('OK', { status: 200 });
@@ -58,13 +69,11 @@ export async function onRequest(context) {
   }
 }
 
-/* ==========================================
-   الموافقة على نشر إعلان
-   ========================================== */
+/* ===== الموافقة على نشر إعلان ===== */
 async function handleApprove(orderCode, callbackId, messageId, chatId, env) {
   try {
     if (!env.VIEWS_KV) {
-      await answerCallback(env, callbackId, '❌ خطأ: KV غير مربوط');
+      await answerCallback(env, callbackId, '❌ KV غير مربوط');
       return;
     }
 
@@ -73,13 +82,41 @@ async function handleApprove(orderCode, callbackId, messageId, chatId, env) {
 
     if (!adRaw) {
       await answerCallback(env, callbackId, '❌ الإعلان غير موجود');
-      await editMessage(env, chatId, messageId, '❌ لم يتم العثور على الإعلان في المخزن', null);
+      await editMessage(env, chatId, messageId, '❌ لم يتم العثور على الإعلان', null);
       return;
     }
 
     const adData = JSON.parse(adRaw);
+    await publishAdToGitHub(adData, env);
+    await env.VIEWS_KV.delete(key);
 
-    // قراءة ads.json
+    await editMessage(env, chatId, messageId,
+      '✅ <b>تم النشر بنجاح!</b>\n\nالإعلان أصبح ظاهراً في الموقع.', null);
+    await answerCallback(env, callbackId, '✅ تم النشر');
+
+  } catch (e) {
+    console.error('Approve error:', e);
+    await answerCallback(env, callbackId, '❌ فشل: ' + e.message);
+  }
+}
+
+/* ===== رفض إعلان ===== */
+async function handleReject(orderCode, callbackId, messageId, chatId, env) {
+  try {
+    if (env.VIEWS_KV) {
+      await env.VIEWS_KV.delete(`pending_ad:${orderCode}`);
+    }
+    await editMessage(env, chatId, messageId,
+      '❌ <b>تم رفض الإعلان</b>\n\nتم حذفه من قائمة الانتظار.', null);
+    await answerCallback(env, callbackId, '❌ تم الرفض');
+  } catch (e) {
+    await answerCallback(env, callbackId, '❌ فشل');
+  }
+}
+
+/* ===== ترقية إعلان ===== */
+async function handleApprovePromote(orderCode, callbackId, messageId, chatId, env) {
+  try {
     const repoFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/ads.json`;
 
     const getResponse = await fetch(repoFile, {
@@ -93,34 +130,29 @@ async function handleApprove(orderCode, callbackId, messageId, chatId, env) {
     if (!getResponse.ok) throw new Error('فشل قراءة ads.json');
 
     const fileData = await getResponse.json();
-    const currentSha = fileData.sha;
-
-    const currentContent = JSON.parse(
+    const ads = JSON.parse(
       decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))))
     );
 
-    const newAd = {
-      id: `ad_${Date.now()}`,
-      orderCode: orderCode,
-      title: adData.title,
-      category: adData.category,
-      price: Number(adData.price),
-      currency: adData.currency || 'IQD',
-      description: adData.description,
-      images: adData.images || [],
-      city: adData.city,
-      whatsapp: adData.whatsapp || adData.ownerPhone,
-      ownerName: adData.ownerName,
-      ownerPhone: adData.ownerPhone,
-      status: 'active',
-      views: 0,
-      createdAt: new Date().toISOString(),
-      publishedAt: new Date().toISOString()
-    };
+    const adIndex = ads.findIndex(ad =>
+      ad.orderCode === orderCode || String(ad.id) === String(orderCode)
+    );
 
-    currentContent.push(newAd);
+    if (adIndex === -1) {
+      await answerCallback(env, callbackId, '❌ الإعلان غير موجود');
+      await editMessage(env, chatId, messageId, '❌ الإعلان غير موجود في ads.json', null);
+      return;
+    }
 
-    const newContent = JSON.stringify(currentContent, null, 2);
+    // تفعيل الترقية
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000); // 10 أيام
+
+    ads[adIndex].isFeatured = true;
+    ads[adIndex].featuredAt = now.toISOString();
+    ads[adIndex].featuredUntil = expiresAt.toISOString();
+
+    const newContent = JSON.stringify(ads, null, 2);
     const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
 
     const putResponse = await fetch(repoFile, {
@@ -132,67 +164,72 @@ async function handleApprove(orderCode, callbackId, messageId, chatId, env) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        message: `Publish ad ${orderCode}`,
+        message: `Feature ad ${orderCode} (10 days)`,
         content: encodedContent,
-        sha: currentSha,
+        sha: fileData.sha,
         branch: 'main'
       })
     });
 
     if (!putResponse.ok) {
       const errData = await putResponse.json();
-      throw new Error(errData.message || 'فشل النشر');
+      throw new Error(errData.message || 'فشل التحديث');
     }
 
-    await env.VIEWS_KV.delete(key);
-
-    await editMessage(
-      env,
-      chatId,
-      messageId,
-      '✅ <b>تم النشر بنجاح!</b>\n\nالإعلان أصبح ظاهراً في الموقع.',
-      null
-    );
-
-    await answerCallback(env, callbackId, '✅ تم النشر');
+    const until = expiresAt.toLocaleDateString('ar-IQ');
+    await editMessage(env, chatId, messageId,
+      `⭐ <b>تم تفعيل الترقية!</b>\n\nالإعلان الآن مميز لمدة 10 أيام\nحتى: ${until}`, null);
+    await answerCallback(env, callbackId, '⭐ تم التفعيل');
 
   } catch (e) {
-    console.error('Approve error:', e);
+    console.error('Promote error:', e);
     await answerCallback(env, callbackId, '❌ فشل: ' + e.message);
   }
 }
 
-/* ==========================================
-   رفض إعلان
-   ========================================== */
-async function handleReject(orderCode, callbackId, messageId, chatId, env) {
+/* ===== تفعيل اشتراك ===== */
+async function handleApproveSubscribe(phone, callbackId, messageId, chatId, env) {
   try {
-    if (env.VIEWS_KV) {
-      await env.VIEWS_KV.delete(`pending_ad:${orderCode}`);
+    if (!env.VIEWS_KV) {
+      await answerCallback(env, callbackId, '❌ KV غير مربوط');
+      return;
     }
 
-    await editMessage(
-      env,
-      chatId,
-      messageId,
-      '❌ <b>تم رفض الإعلان</b>\n\nتم حذفه من قائمة الانتظار.',
-      null
-    );
+    const phoneHash = await hashString(phone);
+    const premiumKey = `premium:${phoneHash}`;
 
-    await answerCallback(env, callbackId, '❌ تم الرفض');
+    const now = new Date();
+    const until = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 يوم
+
+    await env.VIEWS_KV.put(premiumKey, JSON.stringify({
+      phone: phone,
+      activatedAt: now.toISOString(),
+      until: until.toISOString()
+    }), {
+      expirationTtl: 60 * 60 * 24 * 60 // 60 يوم
+    });
+
+    const untilStr = until.toLocaleDateString('ar-IQ');
+    await editMessage(env, chatId, messageId,
+      `💎 <b>تم تفعيل الاشتراك!</b>\n\nالمستخدم الآن مشترك حتى: ${untilStr}\n\n` +
+      `📱 الهاتف: ${escapeHTML(phone)}`, null);
+    await answerCallback(env, callbackId, '💎 تم التفعيل');
 
   } catch (e) {
-    console.error('Reject error:', e);
+    console.error('Subscribe error:', e);
     await answerCallback(env, callbackId, '❌ فشل: ' + e.message);
   }
 }
 
-/* ==========================================
-   حذف إعلان من ads.json
-   ========================================== */
+/* ===== رفض عام ===== */
+async function handleRejectAction(actionText, id, callbackId, messageId, chatId, env) {
+  await editMessage(env, chatId, messageId, `❌ <b>${actionText}</b>\n\n${escapeHTML(id)}`, null);
+  await answerCallback(env, callbackId, '❌ تم الرفض');
+}
+
+/* ===== حذف إعلان ===== */
 async function handleDeleteAd(productId, callbackId, messageId, chatId, env) {
   try {
-    // قراءة ads.json
     const repoFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/ads.json`;
 
     const getResponse = await fetch(repoFile, {
@@ -206,24 +243,14 @@ async function handleDeleteAd(productId, callbackId, messageId, chatId, env) {
     if (!getResponse.ok) throw new Error('فشل قراءة ads.json');
 
     const fileData = await getResponse.json();
-    const currentSha = fileData.sha;
-
-    const currentContent = JSON.parse(
+    const ads = JSON.parse(
       decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))))
     );
 
-    // فلترة الإعلان المحذوف
-    const filtered = currentContent.filter(ad => String(ad.id) !== String(productId));
-    const wasFound = filtered.length < currentContent.length;
+    const filtered = ads.filter(ad => String(ad.id) !== String(productId) && ad.orderCode !== productId);
 
-    if (!wasFound) {
-      await editMessage(
-        env,
-        chatId,
-        messageId,
-        '⚠️ <b>الإعلان غير موجود</b>\n\nربما تم حذفه مسبقاً.',
-        null
-      );
+    if (filtered.length === ads.length) {
+      await editMessage(env, chatId, messageId, '⚠️ الإعلان غير موجود (ربما حُذف)', null);
       await answerCallback(env, callbackId, '⚠️ غير موجود');
       return;
     }
@@ -242,54 +269,98 @@ async function handleDeleteAd(productId, callbackId, messageId, chatId, env) {
       body: JSON.stringify({
         message: `Delete ad ${productId}`,
         content: encodedContent,
-        sha: currentSha,
+        sha: fileData.sha,
         branch: 'main'
       })
     });
 
-    if (!putResponse.ok) {
-      const errData = await putResponse.json();
-      throw new Error(errData.message || 'فشل الحذف');
-    }
+    if (!putResponse.ok) throw new Error('فشل الحذف');
 
-    await editMessage(
-      env,
-      chatId,
-      messageId,
-      '🗑️ <b>تم حذف الإعلان بنجاح!</b>\n\nتمت إزالته من الموقع.',
-      null
-    );
-
+    await editMessage(env, chatId, messageId, '🗑️ <b>تم حذف الإعلان بنجاح!</b>', null);
     await answerCallback(env, callbackId, '✅ تم الحذف');
 
   } catch (e) {
-    console.error('Delete error:', e);
     await answerCallback(env, callbackId, '❌ فشل: ' + e.message);
   }
 }
 
-/* ==========================================
-   تجاهل الإبلاغ
-   ========================================== */
+/* ===== تجاهل إبلاغ ===== */
 async function handleDismissReport(productId, callbackId, messageId, chatId, env) {
-  try {
-    await editMessage(
-      env,
-      chatId,
-      messageId,
-      '✅ <b>تم تجاهل الإبلاغ</b>\n\nالإعلان يبقى كما هو.',
-      null
-    );
-    await answerCallback(env, callbackId, '✅ تم التجاهل');
-  } catch (e) {
-    console.error('Dismiss error:', e);
-    await answerCallback(env, callbackId, '❌ فشل');
-  }
+  await editMessage(env, chatId, messageId, '✅ <b>تم تجاهل الإبلاغ</b>', null);
+  await answerCallback(env, callbackId, '✅ تم التجاهل');
 }
 
 /* ==========================================
    أدوات مساعدة
    ========================================== */
+
+async function publishAdToGitHub(adData, env) {
+  const repoFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/ads.json`;
+
+  const getResponse = await fetch(repoFile, {
+    headers: {
+      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'User-Agent': 'Kulshi-Kulashi',
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  });
+
+  if (!getResponse.ok) throw new Error('فشل قراءة ads.json');
+
+  const fileData = await getResponse.json();
+  const ads = JSON.parse(
+    decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))))
+  );
+
+  const newAd = {
+    id: `ad_${Date.now()}`,
+    orderCode: adData.orderCode,
+    title: adData.title,
+    category: adData.category,
+    price: Number(adData.price),
+    currency: adData.currency || 'IQD',
+    description: adData.description,
+    images: adData.images || [],
+    city: adData.city,
+    whatsapp: adData.whatsapp || adData.ownerPhone,
+    ownerName: adData.ownerName,
+    ownerPhone: adData.ownerPhone,
+    status: 'active',
+    sold: false,
+    views: 0,
+    isFeatured: adData.isFeatured || false,
+    createdAt: new Date().toISOString(),
+    publishedAt: new Date().toISOString()
+  };
+
+  ads.push(newAd);
+
+  const newContent = JSON.stringify(ads, null, 2);
+  const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
+
+  const putResponse = await fetch(repoFile, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `token ${env.GITHUB_TOKEN}`,
+      'User-Agent': 'Kulshi-Kulashi',
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message: `Publish ad ${adData.orderCode}`,
+      content: encodedContent,
+      sha: fileData.sha,
+      branch: 'main'
+    })
+  });
+
+  if (!putResponse.ok) {
+    const errData = await putResponse.json();
+    throw new Error(errData.message || 'فشل النشر');
+  }
+
+  return newAd;
+}
 
 async function answerCallback(env, callbackQueryId, text) {
   try {
@@ -304,9 +375,7 @@ async function answerCallback(env, callbackQueryId, text) {
         })
       }
     );
-  } catch (e) {
-    console.error('answerCallback error:', e);
-  }
+  } catch (e) {}
 }
 
 async function editMessage(env, chatId, messageId, newText, replyMarkup) {
@@ -332,7 +401,21 @@ async function editMessage(env, chatId, messageId, newText, replyMarkup) {
         body: JSON.stringify(body)
       }
     );
-  } catch (e) {
-    console.error('editMessage error:', e);
-  }
+  } catch (e) {}
+}
+
+async function hashString(str) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str + 'kulshi_quota_salt_2026');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
