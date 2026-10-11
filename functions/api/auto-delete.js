@@ -160,7 +160,7 @@ export async function onRequest(context) {
           `تم حذف <b>${deleted.length}</b> إعلان منتهي:\n\n` +
           deleted.slice(0, 10).map(d => {
             const reason = d.reason === 'sold-expired' ? '(مباع - 7 أيام)' :
-                           d.reason === 'lifespan-expired' ? `(${d.days || 4} أيام)` : '';
+                           d.reason === 'lifespan-expired' ? `(${d.days || 7} أيام)` : '';
             return `• ${escapeHTML(d.title)} ${reason}`;
           }).join('\n') +
           (deleted.length > 10 ? `\n\n...و ${deleted.length - 10} آخرين` : '') +
