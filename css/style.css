@@ -308,6 +308,15 @@ body {
   margin-bottom: 8px;
 }
 
+/* ===== صندوق "سجّل للتقييم" ===== */
+.guest-review-box {
+  background: #fafafa;
+  border: 2px dashed #ccc;
+  border-radius: 12px;
+  padding: 25px 20px;
+  text-align: center;
+  margin-bottom: 20px;
+}
 /* ===== Add Button (Floating) ===== */
 .add-btn {
   position: fixed;
