@@ -163,5 +163,27 @@
     "isFeatured": false,
     "createdAt": "2026-10-11T18:41:21.881Z",
     "publishedAt": "2026-10-11T18:41:21.881Z"
+  },
+  {
+    "id": "ad_1791744099276",
+    "orderCode": "KK-2026-8389",
+    "title": "جهاز تدليك العضلات",
+    "category": "other",
+    "price": 5000,
+    "currency": "IQD",
+    "description": "جهاز تدليك العضلات مع رأسي تدليك وكابل شحن",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791743369515_5158.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07851131155",
+    "ownerName": "ابو خالد",
+    "ownerPhone": "07851131155",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "isFeatured": false,
+    "createdAt": "2026-10-11T18:41:39.276Z",
+    "publishedAt": "2026-10-11T18:41:39.276Z"
   }
 ]
