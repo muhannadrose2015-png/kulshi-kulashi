@@ -1,24 +1,5 @@
 [
   {
-    "id": "kk_demo_001",
-    "title": "آيفون 15 برو ماكس - نظيف جداً",
-    "category": "electronics",
-    "price": 1200000,
-    "currency": "IQD",
-    "description": "جهاز آيفون 15 برو ماكس، ذاكرة 256GB، لون تيتانيوم طبيعي.\nالجهاز نظيف جداً بدون خدوش، مع كامل ملحقاته.\nضمان سنة من الوكيل.",
-    "images": [
-      "https://images.unsplash.com/photo-1592286927505-1def25115558?w=600&q=80",
-      "https://images.unsplash.com/photo-1696446702183-b3d65b0e6ee2?w=600&q=80"
-    ],
-    "city": "بغداد",
-    "whatsapp": "9647700000000",
-    "ownerName": "علي محمد",
-    "ownerPhone": "07700000000",
-    "status": "active",
-    "views": 0,
-    "createdAt": "2026-10-09T10:00:00Z"
-  },
-  {
     "id": "kk_demo_002",
     "title": "لابتوب Dell XPS 15 للبيع",
     "category": "electronics",
