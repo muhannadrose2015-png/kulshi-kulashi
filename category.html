@@ -97,7 +97,7 @@
 (async function init() {
   await Ban.checkPageAccess();
   Auth.renderUserHeader();
-  await Auth.requireRegistration();
+  // لا نجبر الزائر على التسجيل - يتصفح بحرية
   Auth.renderUserHeader();
 
   // إذا لم يكن هناك صنف ولا بحث، اعرض كل الأصناف
