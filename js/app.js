@@ -157,12 +157,16 @@ const App = {
   const price = this.formatPrice(product.price, product.currency);
   const location = product.city || '';
   const isSold = product.sold === true;
+  const isFeatured = product.isFeatured === true && !isSold;
+
+  const cardClass = `product-card ${isSold ? 'sold' : ''} ${isFeatured ? 'is-featured' : ''}`;
 
   return `
-    <a href="/product.html?id=${product.id}" class="product-card ${isSold ? 'sold' : ''}">
+    <a href="/product.html?id=${product.id}" class="${cardClass}">
       <div class="product-image-wrap">
         <img src="${img}" alt="${this.escapeHTML(product.title)}" loading="lazy">
         ${views > 0 && !isSold ? `<div class="views-badge">👁️ ${views}</div>` : ''}
+        ${isFeatured ? `<div class="featured-badge">⭐ مميز</div>` : ''}
         ${isSold ? `<div class="sold-overlay">🔴 تم البيع</div>` : ''}
       </div>
       <div class="product-info">
