@@ -18,24 +18,6 @@
     "createdAt": "2026-10-09T09:00:00Z"
   },
   {
-    "id": "kk_demo_004",
-    "title": "كنبة 3 مقاعد - جلد طبيعي",
-    "category": "furniture",
-    "price": 450000,
-    "currency": "IQD",
-    "description": "كنبة فاخرة 3 مقاعد، جلد طبيعي.\nلون بني، حالة ممتازة.\nالتسليم في بغداد فقط.",
-    "images": [
-      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&q=80"
-    ],
-    "city": "بغداد",
-    "whatsapp": "9647700000003",
-    "ownerName": "معرض الأثاث",
-    "ownerPhone": "07700000003",
-    "status": "active",
-    "views": 0,
-    "createdAt": "2026-10-09T07:00:00Z"
-  },
-  {
     "id": "ad_1791564443194",
     "orderCode": "KK-2026-6886",
     "title": "بايسكل ياباني حجم وسط",
