@@ -207,5 +207,27 @@
     "isFeatured": false,
     "createdAt": "2026-10-11T18:41:55.823Z",
     "publishedAt": "2026-10-11T18:41:55.823Z"
+  },
+  {
+    "id": "ad_1791744125344",
+    "orderCode": "KK-2026-8586",
+    "title": "صندوق حفظ المفاتيح",
+    "category": "home",
+    "price": 5000,
+    "currency": "IQD",
+    "description": "مفتاح حفظ المفاتيح برقم سري",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791743960933_6444.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07851131155",
+    "ownerName": "ابو خالد",
+    "ownerPhone": "07851131155",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "isFeatured": false,
+    "createdAt": "2026-10-11T18:42:05.344Z",
+    "publishedAt": "2026-10-11T18:42:05.344Z"
   }
 ]
