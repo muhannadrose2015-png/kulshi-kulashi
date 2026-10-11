@@ -178,6 +178,40 @@
     opacity: 0.8;
     margin-top: 3px;
   }
+
+  /* ===== تنبيه الزائر ===== */
+  #guestWarning {
+    display: none;
+    background: linear-gradient(135deg, #fff9f0 0%, #fff3e0 100%);
+    border: 2px dashed var(--accent);
+    border-radius: 12px;
+    padding: 30px 20px;
+    text-align: center;
+    margin-bottom: 15px;
+  }
+
+  #guestWarning .guest-icon {
+    font-size: 60px;
+    margin-bottom: 15px;
+  }
+
+  #guestWarning h3 {
+    color: var(--primary);
+    font-size: 18px;
+    margin-bottom: 10px;
+  }
+
+  #guestWarning p {
+    color: var(--text-light);
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+
+  #guestWarning .btn {
+    padding: 12px 25px;
+    font-size: 15px;
+  }
 </style>
 </head>
 <body>
@@ -200,31 +234,47 @@
     <a href="/" class="back-btn">→</a>
     <h1>📋 إعلاناتي</h1>
   </div>
-  
-  <!-- قسم بيانات المستخدم -->
-  <div id="userSettingsBox"></div>
-  
-  <!-- شريط الإحصائيات -->
-  <div class="stats-bar" id="statsBar">
-    <div class="stat-item">
-      <div class="stat-value" id="statTotal">0</div>
-      <div class="stat-label">الكل</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value" id="statPending">0</div>
-      <div class="stat-label">قيد المراجعة</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value" id="statApproved">0</div>
-      <div class="stat-label">منشورة</div>
-    </div>
+
+  <!-- تنبيه الزائر -->
+  <div id="guestWarning">
+    <div class="guest-icon">👋</div>
+    <h3>مرحباً بك كزائر</h3>
+    <p>
+      لعرض إعلاناتك، يرجى التسجيل أولاً<br>
+      سجّل مجاناً لتصفح وإدارة إعلاناتك
+    </p>
+    <button class="btn btn-primary" onclick="Auth.showRegisterModal(() => location.reload())">
+      ✍️ سجّل الآن
+    </button>
   </div>
 
-  <!-- قائمة الطلبات -->
-  <div id="ordersList">
-    <div class="loading">
-      <div class="spinner"></div>
-      <p style="margin-top:10px;">جارٍ التحميل...</p>
+  <!-- المحتوى (يظهر فقط للمسجّلين) -->
+  <div id="registeredContent" style="display:none;">
+    <!-- قسم بيانات المستخدم -->
+    <div id="userSettingsBox"></div>
+
+    <!-- شريط الإحصائيات -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-item">
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-label">الكل</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="statPending">0</div>
+        <div class="stat-label">قيد المراجعة</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="statApproved">0</div>
+        <div class="stat-label">منشورة</div>
+      </div>
+    </div>
+
+    <!-- قائمة الطلبات -->
+    <div id="ordersList">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p style="margin-top:10px;">جارٍ التحميل...</p>
+      </div>
     </div>
   </div>
 
@@ -260,22 +310,34 @@
 <script src="/js/settings.js"></script>
 
 <script>
-  
+/* ===== تشغيل الصفحة ===== */
 (async function init() {
   try {
     await Ban.checkPageAccess();
     Auth.renderUserHeader();
-    await Auth.requireRegistration();
-    Auth.renderUserHeader();
+
+    // إذا كان زائراً → أظهر تنبيه التسجيل
+    if (!Auth.isRegistered()) {
+      document.getElementById('guestWarning').style.display = 'block';
+      document.getElementById('registeredContent').style.display = 'none';
+      return;
+    }
+
+    // مسجّل → أظهر المحتوى
+    document.getElementById('guestWarning').style.display = 'none';
+    document.getElementById('registeredContent').style.display = 'block';
 
     // عرض قسم بيانات المستخدم
     Settings.renderUserBox('userSettingsBox');
 
+    // عرض الإعلانات
     await renderMyAds();
   } catch (e) {
     console.error('Init error:', e);
     const container = document.getElementById('ordersList');
-    container.innerHTML = '<div class="empty-state"><p>حدث خطأ في التحميل</p></div>';
+    if (container) {
+      container.innerHTML = '<div class="empty-state"><p>حدث خطأ في التحميل</p></div>';
+    }
   }
 })();
 
@@ -283,12 +345,10 @@
 async function renderMyAds() {
   const container = document.getElementById('ordersList');
 
-  // أولاً: تحديث حالات الطلبات من ads.json
   await syncOrderStatuses();
 
   const orders = KK.getMyOrders();
 
-  // إحصائيات
   const total = orders.length;
   const pending = orders.filter(o => o.status === 'pending').length;
   const approved = orders.filter(o => o.status === 'approved').length;
@@ -317,7 +377,6 @@ async function renderMyAds() {
     const price = App.formatPrice(order.price, order.currency);
     const statusInfo = getStatusInfo(order.status, order.sold);
 
-    // أزرار البيع (فقط للإعلانات المنشورة وغير المباعة)
     let soldButtons = '';
     if (order.status === 'approved') {
       if (order.sold) {
@@ -365,33 +424,22 @@ async function syncOrderStatuses() {
     let changed = false;
 
     orders.forEach(order => {
-      if (order.status === 'pending') {
-        const published = allAds.find(ad =>
-          ad.orderCode === order.code ||
-          String(ad.id) === String(order.code)
-        );
+      const published = allAds.find(ad =>
+        ad.orderCode === order.code ||
+        String(ad.id) === String(order.code)
+      );
 
-        if (published) {
+      if (published) {
+        if (order.status === 'pending') {
           order.status = 'approved';
           order.publishedAt = published.publishedAt || published.createdAt;
-          // نحفظ حالة البيع من ads.json
-          order.sold = !!published.sold;
-          order.soldAt = published.soldAt || null;
           changed = true;
         }
-      } else if (order.status === 'approved') {
-        // نُحدّث حالة البيع إذا تغيّرت
-        const published = allAds.find(ad =>
-          ad.orderCode === order.code ||
-          String(ad.id) === String(order.code)
-        );
-        if (published) {
-          const newSold = !!published.sold;
-          if (order.sold !== newSold) {
-            order.sold = newSold;
-            order.soldAt = published.soldAt || null;
-            changed = true;
-          }
+        const newSold = !!published.sold;
+        if (order.sold !== newSold) {
+          order.sold = newSold;
+          order.soldAt = published.soldAt || null;
+          changed = true;
         }
       }
     });
@@ -563,7 +611,7 @@ async function unmarkSold(orderCode) {
   }
 }
 
-/* ===== نافذة تأكيد أنيقة ===== */
+/* ===== نافذة تأكيد ===== */
 function showConfirmDialog({ title, message, confirmText, cancelText, type }) {
   return new Promise((resolve) => {
     const modal = document.createElement('div');
