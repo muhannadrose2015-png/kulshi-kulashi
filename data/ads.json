@@ -1,23 +1,5 @@
 [
   {
-    "id": "kk_demo_002",
-    "title": "لابتوب Dell XPS 15 للبيع",
-    "category": "electronics",
-    "price": 850000,
-    "currency": "IQD",
-    "description": "لابتوب Dell XPS 15، معالج i7، رام 16GB، هارد SSD 512GB.\nمستخدم سنة فقط، بحالة ممتازة.\nمع حافظة أصلية.",
-    "images": [
-      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&q=80"
-    ],
-    "city": "أربيل",
-    "whatsapp": "9647700000001",
-    "ownerName": "سارة أحمد",
-    "ownerPhone": "07700000001",
-    "status": "active",
-    "views": 0,
-    "createdAt": "2026-10-09T09:00:00Z"
-  },
-  {
     "id": "ad_1791564443194",
     "orderCode": "KK-2026-6886",
     "title": "بايسكل ياباني حجم وسط",
