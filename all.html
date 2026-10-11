@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#232f3e">
+<title>كل الإعلانات - كلشي كلاشي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<!-- الهيدر -->
+<header class="header">
+  <div class="header-top">
+    <a href="/" class="logo">
+      <img src="/images/logo.png" alt="كلشي كلاشي">
+      <span class="logo-text">كلشي كلاشي</span>
+    </a>
+    <div class="header-user" id="headerUser">...</div>
+  </div>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="ابحث عن منتج، مدينة، خدمة...">
+    <button onclick="doSearch()">🔍</button>
+  </div>
+</header>
+
+<!-- المحتوى -->
+<main class="container">
+
+  <!-- رأس الصفحة -->
+  <div class="page-header">
+    <a href="/" class="back-btn">→</a>
+    <h1 id="pageTitle">📋 كل الإعلانات</h1>
+  </div>
+
+  <!-- عدد النتائج -->
+  <div id="resultsInfo" style="text-align:center; color:#666; font-size:13px; margin-bottom:15px;"></div>
+
+  <!-- شريط الفلاتر -->
+  <div class="filters" id="filtersBar">
+    <button class="filter-chip active" data-sort="newest">🆕 الأحدث</button>
+    <button class="filter-chip" data-sort="price-asc">💰 الأرخص</button>
+    <button class="filter-chip" data-sort="price-desc">💎 الأغلى</button>
+  </div>
+
+  <!-- شبكة الإعلانات -->
+  <div class="products-grid" id="allProducts">
+    <div class="loading" style="grid-column: 1/-1;">
+      <div class="spinner"></div>
+      <p style="margin-top:10px;">جارٍ التحميل...</p>
+    </div>
+  </div>
+
+  <!-- زر تحميل المزيد -->
+  <div id="loadMoreContainer" style="text-align:center; margin-top:20px; display:none;">
+    <button class="btn btn-secondary" onclick="AllAds.loadMore()" style="padding:12px 30px;">
+      📥 تحميل المزيد
+    </button>
+  </div>
+
+  <!-- رسالة "لا مزيد" -->
+  <div id="noMoreMessage" style="text-align:center; margin-top:20px; color:#999; font-size:13px; display:none;">
+    ✅ تم عرض جميع الإعلانات
+  </div>
+
+</main>
+
+<!-- زر إضافة إعلان (عائم) -->
+<a href="/add.html" class="add-btn" title="أضف إعلانك">+</a>
+
+<!-- شريط التنقل السفلي -->
+<nav class="bottom-nav">
+  <a href="/" class="nav-item">
+    <span class="nav-icon">🏠</span>
+    <span>الرئيسية</span>
+  </a>
+  <a href="/category.html" class="nav-item">
+    <span class="nav-icon">📂</span>
+    <span>الأصناف</span>
+  </a>
+  <a href="/add.html" class="nav-item">
+    <span class="nav-icon">➕</span>
+    <span>إضافة</span>
+  </a>
+  <a href="/my-ads.html" class="nav-item">
+    <span class="nav-icon">📋</span>
+    <span>إعلاناتي</span>
+  </a>
+</nav>
+
+<!-- تحميل السكربتات -->
+<script src="/js/storage.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/ban.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/products.js"></script>
+<script src="/js/sold-reminder.js"></script>
+
+<script>
+/* ==========================================
+   كل الإعلانات - Lazy Load + فلترة
+   ========================================== */
+
+const AllAds = {
+  allAds: [],
+  displayed: 0,
+  perPage: 12,
+  currentSort: 'newest',
+
+  async init() {
+    // جلب كل الإعلانات
+    this.allAds = await Products.loadAll(true);
+
+    // تحديث العنوان
+    const searchQuery = App.getURLParam('q');
+    if (searchQuery) {
+      document.getElementById('pageTitle').textContent = `🔍 نتائج البحث: ${searchQuery}`;
+      this.allAds = await Products.search(searchQuery);
+    }
+
+    // تحديث العدد
+    this.updateCount();
+
+    // عرض أول دفعة
+    this.displayed = 0;
+    await this.displayNext();
+  },
+
+  updateCount() {
+    const total = this.allAds.length;
+    const info = document.getElementById('resultsInfo');
+    if (info) {
+      info.innerHTML = `📊 <strong>${total}</strong> إعلان متوفر`;
+    }
+  },
+
+  async displayNext() {
+    const container = document.getElementById('allProducts');
+    const loadMoreContainer = document.getElementById('loadMoreContainer');
+    const noMoreMessage = document.getElementById('noMoreMessage');
+
+    // إخفاء الرسائل
+    if (loadMoreContainer) loadMoreContainer.style.display = 'none';
+    if (noMoreMessage) noMoreMessage.style.display = 'none';
+
+    // جلب الدفعة التالية
+    const nextAds = this.allAds.slice(this.displayed, this.displayed + this.perPage);
+
+    if (nextAds.length === 0) {
+      if (this.displayed === 0) {
+        container.innerHTML = Products.emptyStateHTML('لا توجد إعلانات');
+      } else {
+        noMoreMessage.style.display = 'block';
+      }
+      return;
+    }
+
+    // عرض الإعلانات
+    const views = await Products.loadViews();
+    const html = nextAds.map(p => App.productCardHTML(p, views[p.id] || 0)).join('');
+
+    if (this.displayed === 0) {
+      container.innerHTML = html;
+    } else {
+      container.innerHTML += html;
+    }
+
+    this.displayed += nextAds.length;
+
+    // إظهار زر "تحميل المزيد" أو رسالة "لا مزيد"
+    if (this.displayed < this.allAds.length) {
+      loadMoreContainer.style.display = 'block';
+    } else {
+      noMoreMessage.style.display = 'block';
+    }
+  },
+
+  async loadMore() {
+    await this.displayNext();
+  },
+
+  async sort(sortType) {
+    this.currentSort = sortType;
+    let sorted = [...this.allAds];
+
+    if (sortType === 'price-asc') {
+      sorted.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+    } else if (sortType === 'price-desc') {
+      sorted.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+    } else {
+      sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    }
+
+    this.allAds = sorted;
+    this.displayed = 0;
+
+    // مسح الشبكة
+    const container = document.getElementById('allProducts');
+    if (container) container.innerHTML = '';
+
+    // إعادة العرض
+    await this.displayNext();
+  }
+};
+
+/* ===== تشغيل الصفحة ===== */
+(async function init() {
+  await Ban.checkPageAccess();
+  Auth.renderUserHeader();
+
+  // تفعيل الفلاتر
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', async () => {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      await AllAds.sort(chip.dataset.sort);
+    });
+  });
+
+  // تشغيل
+  await AllAds.init();
+})();
+
+/* ===== البحث ===== */
+function doSearch() {
+  const query = document.getElementById('searchInput').value.trim();
+  if (query.length < 2) {
+    App.toast('اكتب على الأقل حرفين للبحث', 'info');
+    return;
+  }
+  window.location.href = '/all.html?q=' + encodeURIComponent(query);
+}
+
+document.getElementById('searchInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') doSearch();
+});
+</script>
+
+</body>
+</html>
