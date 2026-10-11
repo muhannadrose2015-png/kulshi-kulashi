@@ -285,6 +285,40 @@
   .success-actions .btn {
     width: 100%;
   }
+
+  /* ===== تنبيه الزائر ===== */
+  #guestWarning {
+    display: none;
+    background: linear-gradient(135deg, #fff9f0 0%, #fff3e0 100%);
+    border: 2px dashed var(--accent);
+    border-radius: 12px;
+    padding: 25px 20px;
+    text-align: center;
+    margin-bottom: 15px;
+  }
+
+  #guestWarning .guest-icon {
+    font-size: 55px;
+    margin-bottom: 12px;
+  }
+
+  #guestWarning h3 {
+    color: var(--primary);
+    font-size: 17px;
+    margin-bottom: 8px;
+  }
+
+  #guestWarning p {
+    color: var(--text-light);
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 15px;
+  }
+
+  #guestWarning .btn {
+    padding: 12px 25px;
+    font-size: 15px;
+  }
 </style>
 </head>
 <body>
@@ -309,8 +343,21 @@
     <h1>➕ أضف إعلانك</h1>
   </div>
 
+  <!-- تنبيه الزائر -->
+  <div id="guestWarning">
+    <div class="guest-icon">👋</div>
+    <h3>مرحباً بك كزائر</h3>
+    <p>
+      لإضافة إعلانك، يرجى التسجيل أولاً<br>
+      التسجيل مجاني ويستغرق ثوانٍ فقط
+    </p>
+    <button class="btn btn-primary" onclick="Auth.showRegisterModal(() => location.reload())">
+      ✍️ سجّل الآن
+    </button>
+  </div>
+
   <!-- نموذج الإعلان -->
-  <form id="adForm" class="form-container" onsubmit="Submit.submitAd(event)">
+  <form id="adForm" class="form-container" onsubmit="Submit.submitAd(event)" style="display:none;">
 
     <div id="formError"></div>
 
@@ -401,8 +448,17 @@
 (async function init() {
   await Ban.checkPageAccess();
   Auth.renderUserHeader();
-  await Auth.requireRegistration();
-  Auth.renderUserHeader();
+
+  // إذا كان زائراً → أظهر تنبيه التسجيل وأخفِ النموذج
+  if (!Auth.isRegistered()) {
+    document.getElementById('guestWarning').style.display = 'block';
+    document.getElementById('adForm').style.display = 'none';
+    return;
+  }
+
+  // مسجّل → أظهر النموذج
+  document.getElementById('adForm').style.display = 'block';
+  document.getElementById('guestWarning').style.display = 'none';
 
   // ملء قائمة الأصناف
   const cats = await Products.getCategories();
