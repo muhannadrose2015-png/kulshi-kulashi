@@ -115,6 +115,9 @@
     "status": "active",
     "views": 0,
     "createdAt": "2026-10-10T20:06:13.553Z",
-    "publishedAt": "2026-10-10T20:06:13.553Z"
+    "publishedAt": "2026-10-10T20:06:13.553Z",
+    "isFeatured": true,
+    "featuredAt": "2026-10-11T17:46:00.157Z",
+    "featuredUntil": "2026-10-21T17:46:00.157Z"
   }
 ]
