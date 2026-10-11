@@ -251,5 +251,28 @@
     "isFeatured": false,
     "createdAt": "2026-10-11T18:49:34.566Z",
     "publishedAt": "2026-10-11T18:49:34.566Z"
+  },
+  {
+    "id": "ad_1791745110505",
+    "orderCode": "KK-2026-6202",
+    "title": "حذاء نسائي طويل",
+    "category": "fashion",
+    "price": 10000,
+    "currency": "IQD",
+    "description": "حذاء نسائي طويل الى الركبة\nاللون اسود\nمقاس 39\nكعب عالي",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791744694907_9477.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791744696465_5857.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07851131155",
+    "ownerName": "ابو خالد",
+    "ownerPhone": "07851131155",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "isFeatured": false,
+    "createdAt": "2026-10-11T18:58:30.505Z",
+    "publishedAt": "2026-10-11T18:58:30.505Z"
   }
 ]
