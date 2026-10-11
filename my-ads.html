@@ -106,6 +106,12 @@
     color: #721c24;
   }
 
+  .status-featured {
+    background: #fff3e0;
+    color: #e88a00;
+    border: 1px solid #ff9900;
+  }
+
   .order-actions {
     display: flex;
     gap: 6px;
@@ -152,6 +158,40 @@
     border: 1px solid #ff9900;
   }
 
+  .btn-promote {
+    background: linear-gradient(135deg, #ff9900 0%, #e88a00 100%);
+    color: white;
+    border: none;
+  }
+
+  .btn-promote:active {
+    transform: scale(0.97);
+  }
+
+  .btn-subscribe {
+    background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom: 15px;
+    transition: 0.2s;
+  }
+
+  .btn-subscribe:active {
+    transform: scale(0.98);
+  }
+
+  .featured-star {
+    color: #ff9900;
+    font-size: 14px;
+  }
+
   .stats-bar {
     background: var(--primary);
     color: white;
@@ -179,7 +219,6 @@
     margin-top: 3px;
   }
 
-  /* ===== تنبيه الزائر ===== */
   #guestWarning {
     display: none;
     background: linear-gradient(135deg, #fff9f0 0%, #fff3e0 100%);
@@ -211,6 +250,99 @@
   #guestWarning .btn {
     padding: 12px 25px;
     font-size: 15px;
+  }
+
+  /* ==========================================
+     واجهة الترقية والاشتراك
+     ========================================== */
+  .promote-info-box {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    text-align: center;
+  }
+
+  .promote-info-title {
+    font-weight: bold;
+    color: var(--primary);
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  .promote-info-price {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .promote-price-tag {
+    font-size: 22px;
+    font-weight: bold;
+    color: #ff9900;
+  }
+
+  .promote-price-duration {
+    font-size: 13px;
+    color: #666;
+    background: #fff;
+    padding: 4px 10px;
+    border-radius: 15px;
+  }
+
+  .promote-benefits {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 15px;
+  }
+
+  .promote-benefit-item {
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  .payment-info {
+    background: #f0f2f5;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 15px;
+  }
+
+  .payment-info-title {
+    font-weight: bold;
+    color: var(--primary);
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .payment-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+    color: #444;
+  }
+
+  .payment-number {
+    font-family: monospace;
+    font-size: 13px;
+    font-weight: bold;
+    color: #ff9900;
+    background: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    direction: ltr;
+    letter-spacing: 1px;
+    cursor: pointer;
+    user-select: all;
   }
 </style>
 </head>
@@ -253,8 +385,14 @@
     <!-- قسم بيانات المستخدم -->
     <div id="userSettingsBox"></div>
 
+    <!-- زر الاشتراك المميز -->
+    <button class="btn-subscribe" onclick="Promote.subscribe()">
+      💎 اشترك في الباقة المميزة - 15,000 د.ع/شهر
+    </button>
+
     <!-- قسم الحد الأسبوعي -->
-<div id="quotaBox"></div>
+    <div id="quotaBox"></div>
+
     <!-- شريط الإحصائيات -->
     <div class="stats-bar" id="statsBar">
       <div class="stat-item">
@@ -311,6 +449,8 @@
 <script src="/js/submit.js"></script>
 <script src="/js/settings.js"></script>
 <script src="/js/quota.js"></script>
+<script src="/js/promote.js"></script>
+
 <script>
 /* ===== تشغيل الصفحة ===== */
 (async function init() {
@@ -330,13 +470,13 @@
     document.getElementById('registeredContent').style.display = 'block';
 
     // عرض قسم بيانات المستخدم
-Settings.renderUserBox('userSettingsBox');
+    Settings.renderUserBox('userSettingsBox');
 
-// عرض الحد الأسبوعي
-await Quota.render('quotaBox');
+    // عرض الحد الأسبوعي
+    await Quota.render('quotaBox');
 
-// عرض الإعلانات
-await renderMyAds();
+    // عرض الإعلانات
+    await renderMyAds();
   } catch (e) {
     console.error('Init error:', e);
     const container = document.getElementById('ordersList');
@@ -380,22 +520,32 @@ async function renderMyAds() {
       : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23999">📷</text></svg>';
 
     const price = App.formatPrice(order.price, order.currency);
-    const statusInfo = getStatusInfo(order.status, order.sold);
+    const statusInfo = getStatusInfo(order.status, order.sold, order.isFeatured);
 
-    let soldButtons = '';
+    // أزرار العمليات
+    let actionButtons = '';
+
     if (order.status === 'approved') {
       if (order.sold) {
-        soldButtons = `<button class="btn-unsold" onclick="unmarkSold('${order.code}')">↩️ إلغاء البيع</button>`;
+        actionButtons += `<button class="btn-unsold" onclick="unmarkSold('${order.code}')">↩️ إلغاء البيع</button>`;
       } else {
-        soldButtons = `<button class="btn-sold" onclick="markSold('${order.code}')">✅ تم البيع</button>`;
+        actionButtons += `<button class="btn-sold" onclick="markSold('${order.code}')">✅ تم البيع</button>`;
+
+        // زر الترقية (فقط إذا لم يكن مميزاً)
+        if (!order.isFeatured) {
+          actionButtons += `<button class="btn-promote" onclick="Promote.promoteAd('${order.code}')">⭐ ترقية</button>`;
+        }
       }
     }
+
+    // نجوم التمييز في العنوان
+    const featuredStar = order.isFeatured ? '<span class="featured-star">⭐</span> ' : '';
 
     return `
       <div class="order-card">
         <img src="${img}" class="order-image" alt="${App.escapeHTML(order.title)}">
         <div class="order-info">
-          <div class="order-title">${App.escapeHTML(order.title)}</div>
+          <div class="order-title">${featuredStar}${App.escapeHTML(order.title)}</div>
           <div class="order-price">${price}</div>
           <div class="order-meta">
             📍 ${App.escapeHTML(order.city || '')} • 🕐 ${App.formatDate(order.submittedAt)}
@@ -410,7 +560,7 @@ async function renderMyAds() {
           <div class="order-actions">
             <button class="btn-view" onclick="viewOrder('${order.code}')">👁️ عرض</button>
             <button class="btn-track" onclick="trackOrder('${order.code}')">🔍 تتبع</button>
-            ${soldButtons}
+            ${actionButtons}
             <button class="btn-delete" onclick="Submit.deleteOrder('${order.code}')">🗑️ حذف</button>
           </div>
         </div>
@@ -440,10 +590,18 @@ async function syncOrderStatuses() {
           order.publishedAt = published.publishedAt || published.createdAt;
           changed = true;
         }
+        // حالة البيع
         const newSold = !!published.sold;
         if (order.sold !== newSold) {
           order.sold = newSold;
           order.soldAt = published.soldAt || null;
+          changed = true;
+        }
+        // حالة التمييز
+        const newFeatured = !!published.isFeatured;
+        if (order.isFeatured !== newFeatured) {
+          order.isFeatured = newFeatured;
+          order.featuredUntil = published.featuredUntil || null;
           changed = true;
         }
       }
@@ -458,9 +616,12 @@ async function syncOrderStatuses() {
 }
 
 /* ===== حالة الطلب ===== */
-function getStatusInfo(status, sold) {
+function getStatusInfo(status, sold, isFeatured) {
   if (status === 'approved' && sold) {
     return { class: 'status-sold', icon: '💰', text: 'تم البيع' };
+  }
+  if (status === 'approved' && isFeatured) {
+    return { class: 'status-featured', icon: '⭐', text: 'مميز' };
   }
   switch (status) {
     case 'approved':
