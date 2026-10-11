@@ -1591,4 +1591,48 @@ body {
 
 .product-card.is-featured .product-price {
   color: #ff9900;
+   
+}
+
+/* ==========================================
+   شارة الإعلان المميز - صفحة المنتج
+   ========================================== */
+.featured-banner {
+  background: linear-gradient(135deg, #ff9900 0%, #e88a00 100%);
+  color: white;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 3px solid #cc7a00;
+}
+
+.featured-banner-icon {
+  font-size: 36px;
+  flex-shrink: 0;
+  animation: star-shine 2s infinite;
+}
+
+@keyframes star-shine {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.15) rotate(10deg); }
+}
+
+.featured-banner-content {
+  flex: 1;
+}
+
+.featured-banner-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+
+.featured-banner-subtitle {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.product-details.is-featured .product-detail-price {
+  color: #ff9900;
 }
