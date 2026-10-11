@@ -502,14 +502,28 @@ const Products = {
     }
 
     // نموذج/تقييم المستخدم
-    let userSectionHTML = '';
-    if (userReview) {
-      // المستخدم قيّم مسبقاً → اعرض تقييمه مميزاً مع زر تعديل
-      userSectionHTML = this.userReviewCardHTML(userReview);
-    } else {
-      // نموذج تقييم جديد
-      userSectionHTML = this.reviewFormHTML(productId);
-    }
+    // نموذج/تقييم المستخدم
+let userSectionHTML = '';
+const user = KK.getUser();
+const isRegistered = !!(user && user.name && user.phone);
+
+if (userReview) {
+  userSectionHTML = this.userReviewCardHTML(userReview);
+} else if (!isRegistered) {
+  // زائر - لا يستطيع التقييم
+  userSectionHTML = `
+    <div class="guest-review-box">
+      <div style="font-size:40px; margin-bottom:10px;">🔒</div>
+      <h3 style="color:#232f3e; font-size:16px; margin-bottom:8px;">سجّل لتتمكن من التقييم</h3>
+      <p style="color:#666; font-size:13px; margin-bottom:15px;">التقييم متاح للأعضاء فقط</p>
+      <button class="btn btn-primary" onclick="Auth.showRegisterModal(() => location.reload())">
+        ✍️ سجّل الآن
+      </button>
+    </div>
+  `;
+} else {
+  userSectionHTML = this.reviewFormHTML(productId);
+}
 
     // تقييمات الآخرين (بدون المستخدم)
     const otherReviews = reviews;
