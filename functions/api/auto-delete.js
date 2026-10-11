@@ -79,7 +79,7 @@ export async function onRequest(context) {
       const daysSincePublish = (now - publishDate) / (1000 * 60 * 60 * 24);
 
       // تحديد مدة العمر حسب النوع
-      let lifespanDays = 4; // الافتراضي: 4 أيام
+      let lifespanDays = 7; // الافتراضي: 7 أيام
 
       if (ad.sold === true) {
         // الإعلان المباع: 7 أيام بعد تاريخ البيع
