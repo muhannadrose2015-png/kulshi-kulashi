@@ -5,7 +5,7 @@
 const SoldReminder = {
 
   STORAGE_KEY: 'kk_asked_about_sold',
-  MIN_DAYS_OLD: 7, // الحد الأدنى: 7 أيام من النشر
+  MIN_DAYS_OLD: 5, // الحد الأدنى: 5 أيام من النشر
   MIN_INTERVAL_HOURS: 4, // لا نُذكّر أكثر من مرة كل 4 ساعات
 
   /* ===== فحص عند فتح الموقع ===== */
