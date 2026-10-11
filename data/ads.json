@@ -229,5 +229,27 @@
     "isFeatured": false,
     "createdAt": "2026-10-11T18:42:05.344Z",
     "publishedAt": "2026-10-11T18:42:05.344Z"
+  },
+  {
+    "id": "ad_1791744574566",
+    "orderCode": "KK-2026-1003",
+    "title": "شيكر ستانلس ستيل",
+    "category": "home",
+    "price": 10000,
+    "currency": "IQD",
+    "description": "شيكر حجم كبير ستانلس ستيل",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791744466255_5553.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07851131155",
+    "ownerName": "ابو خالد",
+    "ownerPhone": "07851131155",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "isFeatured": false,
+    "createdAt": "2026-10-11T18:49:34.566Z",
+    "publishedAt": "2026-10-11T18:49:34.566Z"
   }
 ]
