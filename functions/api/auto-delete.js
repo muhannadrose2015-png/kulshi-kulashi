@@ -31,6 +31,9 @@ export async function onRequest(context) {
   }
 
   try {
+    // ===== قراءة الإعدادات =====
+    const settings = await getSettings(env);
+
     // ===== قراءة ads.json =====
     const repoFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/ads.json`;
 
@@ -56,7 +59,8 @@ export async function onRequest(context) {
         success: true,
         deleted: 0,
         kept: 0,
-        message: 'لا توجد إعلانات'
+        message: 'لا توجد إعلانات',
+        settings: settings
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -71,26 +75,26 @@ export async function onRequest(context) {
       const publishDate = new Date(ad.publishedAt || ad.createdAt);
 
       if (isNaN(publishDate.getTime())) {
-        // تاريخ غير صحيح → نُبقيه
         kept.push(ad);
         continue;
       }
 
       const daysSincePublish = (now - publishDate) / (1000 * 60 * 60 * 24);
 
-      // تحديد مدة العمر حسب النوع
-      let lifespanDays = 7; // الافتراضي: 7 أيام
+      // تحديد مدة العمر من الإعدادات
+      let lifespanDays = settings.adLifespan;
 
       if (ad.sold === true) {
-        // الإعلان المباع: 7 أيام بعد تاريخ البيع
+        // الإعلان المباع
         const soldDate = new Date(ad.soldAt || ad.publishedAt);
         if (!isNaN(soldDate.getTime())) {
           const daysSinceSold = (now - soldDate) / (1000 * 60 * 60 * 24);
-          if (daysSinceSold >= 7) {
+          if (daysSinceSold >= settings.soldLifespan) {
             deleted.push({
               code: ad.orderCode || ad.id,
               title: ad.title,
-              reason: 'sold-expired'
+              reason: 'sold-expired',
+              days: Math.round(daysSinceSold)
             });
             continue;
           }
@@ -98,17 +102,18 @@ export async function onRequest(context) {
           continue;
         }
       } else if (ad.isFeatured === true) {
-        // الإعلان المميز: 10 أيام
-        lifespanDays = 10;
+        // الإعلان المميز
+        lifespanDays = settings.featuredLifespan;
       }
 
-      // فحص المدة العادية
+      // فحص المدة
       if (daysSincePublish >= lifespanDays) {
         deleted.push({
           code: ad.orderCode || ad.id,
           title: ad.title,
           reason: 'lifespan-expired',
-          days: Math.round(daysSincePublish)
+          days: Math.round(daysSincePublish),
+          lifespan: lifespanDays
         });
       } else {
         kept.push(ad);
@@ -121,7 +126,12 @@ export async function onRequest(context) {
         success: true,
         deleted: 0,
         kept: kept.length,
-        message: 'لا توجد إعلانات منتهية'
+        message: 'لا توجد إعلانات منتهية',
+        settings: {
+          adLifespan: settings.adLifespan,
+          featuredLifespan: settings.featuredLifespan,
+          soldLifespan: settings.soldLifespan
+        }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -159,8 +169,8 @@ export async function onRequest(context) {
           `━━━━━━━━━━━━━━━━━━━━\n\n` +
           `تم حذف <b>${deleted.length}</b> إعلان منتهي:\n\n` +
           deleted.slice(0, 10).map(d => {
-            const reason = d.reason === 'sold-expired' ? '(مباع - 7 أيام)' :
-                           d.reason === 'lifespan-expired' ? `(${d.days || 7} أيام)` : '';
+            const reason = d.reason === 'sold-expired' ? `(مباع - ${settings.soldLifespan} أيام)` :
+                           d.reason === 'lifespan-expired' ? `(${d.lifespan} يوم)` : '';
             return `• ${escapeHTML(d.title)} ${reason}`;
           }).join('\n') +
           (deleted.length > 10 ? `\n\n...و ${deleted.length - 10} آخرين` : '') +
@@ -186,6 +196,11 @@ export async function onRequest(context) {
       deleted: deleted.length,
       kept: kept.length,
       details: deleted,
+      settings: {
+        adLifespan: settings.adLifespan,
+        featuredLifespan: settings.featuredLifespan,
+        soldLifespan: settings.soldLifespan
+      },
       timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -200,6 +215,46 @@ export async function onRequest(context) {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
+  }
+}
+
+/* ===== قراءة الإعدادات ===== */
+async function getSettings(env) {
+  const defaults = {
+    adLifespan: 20,
+    featuredLifespan: 30,
+    soldLifespan: 7
+  };
+
+  try {
+    const repoFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/settings.json`;
+
+    const response = await fetch(repoFile, {
+      headers: {
+        'Authorization': `token ${env.GITHUB_TOKEN}`,
+        'User-Agent': 'Kulshi-Kulashi',
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!response.ok) return defaults;
+
+    const fileData = await response.json();
+    const content = JSON.parse(
+      decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))))
+    );
+
+    const settings = { ...defaults };
+    for (const key of Object.keys(defaults)) {
+      if (content[key] !== undefined && content[key] !== null) {
+        settings[key] = Number(content[key]) || defaults[key];
+      }
+    }
+
+    return settings;
+  } catch (e) {
+    console.error('Get settings error:', e);
+    return defaults;
   }
 }
 
