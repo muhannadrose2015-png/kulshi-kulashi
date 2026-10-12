@@ -1,7 +1,7 @@
 /* ==========================================
    Cloudflare Function - إرسال الإعلان إلى تليجرام
    المسار: /api/submit
-   يخزّن الإعلانات المعلّقة في KV لأجل الموافقة
+   يخزّن الإعلانات المعلّقة في KV لأجل الموافقة أو النشر التلقائي
    ========================================== */
 
 export async function onRequest(context) {
@@ -46,23 +46,60 @@ export async function onRequest(context) {
 
     /* ===== إعلان جديد ===== */
     if (action === 'new_ad') {
-      // تخزين الإعلان في KV أولاً (لأجل الموافقة)
+      // تخزين الإعلان في KV (للموافقة أو النشر التلقائي)
       if (env.VIEWS_KV) {
         try {
+          // ===== قراءة الإعدادات =====
+          let normalWait = 20;
+          let featuredWait = 5;
+
+          try {
+            const settingsFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/settings.json`;
+            const settingsRes = await fetch(settingsFile, {
+              headers: {
+                'Authorization': `token ${env.GITHUB_TOKEN}`,
+                'User-Agent': 'Kulshi-Kulashi',
+                'Accept': 'application/vnd.github.v3+json'
+              }
+            });
+
+            if (settingsRes.ok) {
+              const settingsData = await settingsRes.json();
+              const settings = JSON.parse(
+                decodeURIComponent(escape(atob(settingsData.content.replace(/\n/g, ''))))
+              );
+              if (settings.autoPublishNormalMinutes) normalWait = Number(settings.autoPublishNormalMinutes);
+              if (settings.autoPublishFeaturedMinutes) featuredWait = Number(settings.autoPublishFeaturedMinutes);
+            }
+          } catch (e) {
+            console.error('Settings read error:', e);
+          }
+
+          // ===== تحديد مدة الانتظار =====
+          const isFeatured = data.isFeatured === true;
+          const waitMinutes = isFeatured ? featuredWait : normalWait;
+
+          const now = new Date();
+          const expiresAt = new Date(now.getTime() + waitMinutes * 60 * 1000);
+
           const key = `pending_ad:${data.orderCode}`;
           const value = JSON.stringify({
             ...data,
-            createdAt: new Date().toISOString(),
+            isFeatured: isFeatured,
+            createdAt: now.toISOString(),
+            expiresAt: expiresAt.toISOString(),
+            waitMinutes: waitMinutes,
             status: 'pending'
           });
-          // نحفظ في KV مع expiry بعد 30 يوماً
+
+          // نحفظ في KV لمدة 30 يوماً
           await env.VIEWS_KV.put(key, value, {
             expirationTtl: 60 * 60 * 24 * 30
           });
-          console.log('Ad stored in KV:', key);
+
+          console.log('Ad stored in KV:', key, '| expires at:', expiresAt.toISOString(), '| wait:', waitMinutes, 'min');
         } catch (kvError) {
           console.error('KV store error:', kvError);
-          // لا نوقف العملية إذا فشل التخزين
         }
       }
 
@@ -78,19 +115,18 @@ export async function onRequest(context) {
       };
     }
     /* ===== إبلاغ عن إعلان ===== */
-else if (action === 'report') {
-  message = formatReport(data);
+    else if (action === 'report') {
+      message = formatReport(data);
 
-  // أزرار: حذف الإعلان أو تجاهل الإبلاغ
-  replyMarkup = {
-    inline_keyboard: [
-      [
-        { text: '🗑️ حذف الإعلان', callback_data: `delete_ad_${data.productId}` },
-        { text: '✅ تجاهل الإبلاغ', callback_data: `dismiss_report_${data.productId}` }
-      ]
-    ]
-  };
-}
+      replyMarkup = {
+        inline_keyboard: [
+          [
+            { text: '🗑️ حذف الإعلان', callback_data: `delete_ad_${data.productId}` },
+            { text: '✅ تجاهل الإبلاغ', callback_data: `dismiss_report_${data.productId}` }
+          ]
+        ]
+      };
+    }
     /* ===== طلب حذف ===== */
     else if (action === 'delete_request') {
       // حذف الإعلان المعلّق من KV (إن وُجد)
@@ -231,7 +267,7 @@ function formatNewAd(data) {
   }
 
   msg += `\n⏰ ${new Date().toLocaleString('ar-IQ')}`;
-  msg += `\n\n<b>اضغط موافقة للنشر أو رفض للإلغاء</b>`;
+  msg += `\n\n<b>اضغط موافقة للنشر الفوري أو انتظر النشر التلقائي</b>`;
 
   return msg;
 }
