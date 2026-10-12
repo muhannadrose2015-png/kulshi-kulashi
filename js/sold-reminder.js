@@ -1,64 +1,86 @@
 /* ==========================================
    sold-reminder.js - تذكير "هل تم البيع؟"
+   يقرأ الإعدادات من /data/settings.json
    ========================================== */
 
 const SoldReminder = {
 
   STORAGE_KEY: 'kk_asked_about_sold',
-  MIN_DAYS_OLD: 5, // الحد الأدنى: 5 أيام من النشر
-  MIN_INTERVAL_HOURS: 4, // لا نُذكّر أكثر من مرة كل 4 ساعات
+
+  /* ===== الإعدادات (تُحمّل من settings.json) ===== */
+  settings: {
+    reminderStartDay: 15,
+    reminderIntervalHours: 4,
+    reminderSameAdDays: 14
+  },
+
+  /* ===== تحميل الإعدادات ===== */
+  async loadSettings() {
+    try {
+      const data = await App.fetchJSON('/data/settings.json');
+      if (data) {
+        if (data.reminderStartDay) this.settings.reminderStartDay = Number(data.reminderStartDay);
+        if (data.reminderIntervalHours) this.settings.reminderIntervalHours = Number(data.reminderIntervalHours);
+        if (data.reminderSameAdDays) this.settings.reminderSameAdDays = Number(data.reminderSameAdDays);
+      }
+    } catch (e) {
+      console.log('استخدم الإعدادات الافتراضية:', e);
+    }
+  },
 
   /* ===== فحص عند فتح الموقع ===== */
   async check() {
+    // تحميل الإعدادات
+    await this.loadSettings();
+
     // 1. تجاهل الزوار
     const user = KK.getUser();
     if (!user || !user.name) return;
 
     // 2. تجاهل الصفحات غير المناسبة
     const path = window.location.pathname;
-    const excludedPages = ['/add.html', '/track.html', '/about.html', '/contact.html'];
+    const excludedPages = ['/add.html', '/track.html', '/about.html', '/contact.html', '/terms.html', '/privacy.html'];
     if (excludedPages.some(p => path.includes(p))) return;
 
     // 3. لا نُذكّر إذا ذكّرنا قريباً
     const lastTime = parseInt(localStorage.getItem('kk_reminder_time') || '0');
     const hoursSince = (Date.now() - lastTime) / (1000 * 60 * 60);
-    if (hoursSince < this.MIN_INTERVAL_HOURS) return;
+    if (hoursSince < this.settings.reminderIntervalHours) return;
 
     // 4. جلب الإعلانات المنشورة
     const orders = KK.getMyOrders();
     const published = orders.filter(o =>
       o.status === 'approved' &&
       !o.sold &&
-      o.publishedAt // يوجد تاريخ نشر
+      o.publishedAt
     );
 
     if (published.length === 0) return;
 
-    // 5. فلترة الإعلانات التي مضى عليها 7 أيام
+    // 5. فلترة الإعلانات التي مضى عليها reminderStartDay
     const now = Date.now();
     const oldAds = published.filter(o => {
       const pubDate = new Date(o.publishedAt || o.submittedAt);
       const daysOld = (now - pubDate) / (1000 * 60 * 60 * 24);
-      return daysOld >= this.MIN_DAYS_OLD;
+      return daysOld >= this.settings.reminderStartDay;
     });
 
     if (oldAds.length === 0) return;
 
-    // 6. استبعاد الإعلانات التي سُئل عنها مؤخراً
+    // 6. استبعاد التي سُئل عنها مؤخراً
     const askedList = JSON.parse(localStorage.getItem(this.STORAGE_KEY) || '{}');
-    
-    // البحث عن إعلان لم نسأل عنه في آخر 14 يوم
-    const TWO_WEEKS = 14 * 24 * 60 * 60 * 1000;
+    const sameAdMs = this.settings.reminderSameAdDays * 24 * 60 * 60 * 1000;
+
     const candidates = oldAds.filter(ad => {
       const askedAt = askedList[ad.code];
       if (!askedAt) return true;
-      return (now - askedAt) > TWO_WEEKS;
+      return (now - askedAt) > sameAdMs;
     });
 
     // إذا لم يوجد، نأخذ الأقدم من الكل
     const pool = candidates.length > 0 ? candidates : oldAds;
 
-    // 7. الاختيار: الأقدم
+    // 7. الأقدم أولاً
     pool.sort((a, b) => {
       const dateA = new Date(a.publishedAt || a.submittedAt);
       const dateB = new Date(b.publishedAt || b.submittedAt);
@@ -67,7 +89,7 @@ const SoldReminder = {
 
     const chosen = pool[0];
 
-    // 8. عرض النافذة بعد 3 ثوانٍ
+    // 8. عرض النافذة
     setTimeout(() => {
       this.showReminder(chosen);
     }, 3000);
@@ -75,7 +97,6 @@ const SoldReminder = {
 
   /* ===== عرض النافذة ===== */
   showReminder(order) {
-    // لا نُعرض إذا كانت نافذة موجودة
     if (document.getElementById('soldReminderBanner')) return;
 
     const daysSince = Math.floor(
@@ -121,11 +142,7 @@ const SoldReminder = {
     `;
 
     document.body.appendChild(banner);
-
-    // تأثير الظهور
     setTimeout(() => banner.classList.add('show'), 50);
-
-    // حفظ الوقت
     localStorage.setItem('kk_reminder_time', Date.now().toString());
   },
 
@@ -136,24 +153,21 @@ const SoldReminder = {
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(asked));
   },
 
-  /* ===== المستخدم قال "تم البيع" ===== */
+  /* ===== تم البيع ===== */
   async markSold(orderCode) {
     const user = KK.getUser();
     if (!user) return;
 
-    // إخفاء النافذة مؤقتاً
     this.hideBanner();
 
     const confirmed = await this.showConfirmDialog({
       title: '✅ تأكيد البيع',
       message: 'هل أنت متأكد أن هذا المنتج تم بيعه؟\n\nسيظهر "تم البيع" على الإعلان',
       confirmText: '✅ نعم، تم البيع',
-      cancelText: 'تراجع',
-      type: 'success'
+      cancelText: 'تراجع'
     });
 
     if (!confirmed) {
-      // أعِد عرض النافذة
       this.showReminderAfterConfirm(orderCode);
       return;
     }
@@ -174,7 +188,6 @@ const SoldReminder = {
       const data = await response.json();
 
       if (data.success) {
-        // تحديث LocalStorage
         const orders = KK.getMyOrders();
         const order = orders.find(o => o.code === orderCode);
         if (order) {
@@ -182,7 +195,6 @@ const SoldReminder = {
           order.soldAt = new Date().toISOString();
           localStorage.setItem(KK.KEYS.MY_ORDERS, JSON.stringify(orders));
         }
-
         this.recordAsked(orderCode);
         App.toast('✅ تم تعليم الإعلان كمباع', 'success');
       } else {
@@ -194,14 +206,14 @@ const SoldReminder = {
     }
   },
 
-  /* ===== المستخدم قال "لا يزال متوفراً" ===== */
+  /* ===== لا يزال متوفراً ===== */
   stillAvailable(orderCode) {
     this.recordAsked(orderCode);
     this.hideBanner();
     App.toast('👍 شكراً لك', 'success');
   },
 
-  /* ===== رفض (X) ===== */
+  /* ===== رفض ===== */
   dismiss(orderCode) {
     this.recordAsked(orderCode);
     this.hideBanner();
@@ -216,7 +228,7 @@ const SoldReminder = {
     }
   },
 
-  /* ===== إعادة عرض النافذة (بعد تراجع) ===== */
+  /* ===== إعادة العرض ===== */
   async showReminderAfterConfirm(orderCode) {
     const orders = KK.getMyOrders();
     const order = orders.find(o => o.code === orderCode);
@@ -225,7 +237,7 @@ const SoldReminder = {
   },
 
   /* ===== نافذة تأكيد ===== */
-  showConfirmDialog({ title, message, confirmText, cancelText, type }) {
+  showConfirmDialog({ title, message, confirmText, cancelText }) {
     return new Promise((resolve) => {
       const modal = document.createElement('div');
       modal.className = 'modal-overlay';
@@ -261,7 +273,7 @@ const SoldReminder = {
 
 window.SoldReminder = SoldReminder;
 
-/* ===== تشغيل تلقائي عند تحميل الصفحة ===== */
+/* ===== تشغيل تلقائي ===== */
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => SoldReminder.check(), 2000);
