@@ -300,5 +300,31 @@
     "isFeatured": false,
     "createdAt": "2026-10-11T19:59:19.879Z",
     "publishedAt": "2026-10-11T19:59:19.879Z"
+  },
+  {
+    "id": "ad_1791802431056",
+    "orderCode": "KK-2026-1455",
+    "title": "ملابس",
+    "category": "fashion",
+    "price": 10000,
+    "currency": "IQD",
+    "description": "يتوفر توصيل جميع المحافظات",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791802298941_3290.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791802300853_2629.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791802303007_3333.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791802305011_3342.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791802306446_3.jpg"
+    ],
+    "city": "مجمع عامرية الفلوجه",
+    "whatsapp": "07805267598",
+    "ownerName": "ام براء",
+    "ownerPhone": "07805267598",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "isFeatured": false,
+    "createdAt": "2026-10-12T10:53:51.056Z",
+    "publishedAt": "2026-10-12T10:53:51.056Z"
   }
 ]
