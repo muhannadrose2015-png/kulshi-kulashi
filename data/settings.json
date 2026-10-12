@@ -1,0 +1,30 @@
+{
+  "_دليل": "🔴 غيّر الأرقام فقط - اضغط Commit changes عند الانتهاء",
+  
+  "_الإعلانات": "===== عمر الإعلانات (بالأيام) =====",
+  "adLifespan": 20,
+  "featuredLifespan": 30,
+  "soldLifespan": 7,
+  
+  "_التذكير": "===== تذكير 'هل تم البيع؟' =====",
+  "reminderStartDay": 15,
+  "reminderIntervalHours": 4,
+  "reminderSameAdDays": 14,
+  
+  "_الحدود": "===== الحدود الأسبوعية =====",
+  "weeklyLimit": 7,
+  
+  "_الأسعار": "===== الأسعار (دينار عراقي) =====",
+  "promotePrice": 2000,
+  "promoteDays": 10,
+  "subscribePrice": 15000,
+  "subscribeDays": 30,
+  
+  "_المرفوعات": "===== المرفوعات =====",
+  "maxImagesPerAd": 5,
+  "maxImageSizeKB": 400,
+  
+  "_النشر_التلقائي": "===== النشر التلقائي (بالدقائق) =====",
+  "autoPublishNormalMinutes": 20,
+  "autoPublishFeaturedMinutes": 5
+}
