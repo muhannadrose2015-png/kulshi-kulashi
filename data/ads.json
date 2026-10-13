@@ -463,5 +463,29 @@
     "createdAt": "2026-10-13T18:15:12.126Z",
     "publishedAt": "2026-10-13T18:15:12.126Z",
     "autoPublished": true
+  },
+  {
+    "id": "ad_1791915612646_348",
+    "orderCode": "KK-2026-6007",
+    "title": "كاميرا الأكشن المحمولة XO-ZF05",
+    "category": "electronics",
+    "price": 100000,
+    "currency": "IQD",
+    "description": "📸✨ كاميرا XO-ZF05 — صغيرة، أنيقة وكل لحظة تستاهل تنحفظ!\n\n🎥 تصوير حتى 2.5K\n📸 صور حتى 66MP\n🔄 عدسة 180° للسيلفي والتصوير\n🔋 بطارية 2000mAh\n💾 تدعم ذاكرة حتى 128GB\n🎮 ألعاب + MP3 وأكثر!\n\n✈️ مثالية للسفر والمغامرات وصناعة المحتوى 🤍\n\n📩 للطلب والاستفسار راسلونا بالخاص",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791914125079_4037.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791914127206_7348.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791914129785_809.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07856761412",
+    "ownerName": "مهند زهير",
+    "ownerPhone": "07856761412",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-10-13T18:20:12.646Z",
+    "publishedAt": "2026-10-13T18:20:12.646Z",
+    "autoPublished": true
   }
 ]
