@@ -170,11 +170,11 @@ return `
   <a href="/product.html?id=${product.id}" class="${cardClass}">
     <div class="product-image-wrap">
       <img src="${img}" alt="${this.escapeHTML(product.title)}" loading="lazy">
-      ${/* تم إيقاف عرض المشاهدات مؤقتاً */ ''}
-      ${isFeatured ? `<div class="featured-badge">⭐ مميز</div>` : ''}
-      ${isSold ? `<div class="sold-overlay">🔴 تم البيع</div>` : ''}
-      ${favBtn}
-    </div>
+    ${/* تم إيقاف عرض المشاهدات مؤقتاً */ ''}
+  ${isFeatured ? `<div class="featured-badge">⭐ مميز</div>` : ''}
+  ${isSold ? `<div class="sold-overlay">🔴 تم البيع</div>` : ''}
+  ${(typeof Favorites !== 'undefined') ? Favorites.buttonHTML(product.id, 'btn-fav-card') : ''}
+</div>
     <div class="product-info">
       <div class="product-title">${this.escapeHTML(product.title)}</div>
       <div class="product-price">${price}</div>
