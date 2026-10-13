@@ -115,19 +115,13 @@
 <script>
 /* ===== تشغيل الصفحة ===== */
 (async function init() {
-  // فحص الحظر أولاً
   await Ban.checkPageAccess();
+  Auth.renderUserHeader();
 
-  // عرض بيانات المستخدم في الهيدر
-  Auth.renderUserHeader();
-// تحديث عدّاد المفضلة
-if (typeof Favorites !== 'undefined') {
-  Favorites.updateBadge();
-}
-  // إذا لم يكن مسجلاً، اطلب التسجيل
-  
-  // إعادة عرض البيانات بعد التسجيل
-  Auth.renderUserHeader();
+  // تحديث عدّاد المفضلة
+  if (typeof Favorites !== 'undefined') {
+    Favorites.updateBadge();
+  }
 
   // تحميل الإعلانات والأصناف
   await Products.initHomePage();
