@@ -17,7 +17,8 @@ const Submit = {
     // ===== جمع البيانات =====
     const title = document.getElementById('adTitle').value.trim();
     const category = document.getElementById('adCategory').value;
-    const price = document.getElementById('adPrice').value.trim();
+    const priceInput = document.getElementById('adPrice');
+const price = (priceInput.dataset.rawValue || priceInput.value.replace(/[^\d]/g, '')).trim();
     const currency = document.getElementById('adCurrency').value;
     const whatsapp = document.getElementById('adWhatsapp').value.trim();
     const city = document.getElementById('adCity').value.trim();
