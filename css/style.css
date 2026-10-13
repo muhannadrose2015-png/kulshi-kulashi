@@ -1800,7 +1800,7 @@ body {
 .fav-btn {
   position: absolute;
   top: 8px;
-  right: 8px;
+  left: 8px;      ← ✅ تم النقل من اليمين إلى اليسار
   width: 38px;
   height: 38px;
   border-radius: 50%;
