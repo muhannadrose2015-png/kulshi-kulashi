@@ -161,21 +161,27 @@ const App = {
 
   const cardClass = `product-card ${isSold ? 'sold' : ''} ${isFeatured ? 'is-featured' : ''}`;
 
-  return `
-    <a href="/product.html?id=${product.id}" class="${cardClass}">
-      <div class="product-image-wrap">
-        <img src="${img}" alt="${this.escapeHTML(product.title)}" loading="lazy">
-        ${/* تم إيقاف عرض المشاهدات مؤقتاً */ ''}
-        ${isFeatured ? `<div class="featured-badge">⭐ مميز</div>` : ''}
-        ${isSold ? `<div class="sold-overlay">🔴 تم البيع</div>` : ''}
-      </div>
-      <div class="product-info">
-        <div class="product-title">${this.escapeHTML(product.title)}</div>
-        <div class="product-price">${price}</div>
-        ${location ? `<div class="product-location">📍 ${this.escapeHTML(location)}</div>` : ''}
-      </div>
-    </a>
-  `;
+  // زر المفضلة ❤️
+const favBtn = (typeof Favorites !== 'undefined')
+  ? Favorites.buttonHTML(product.id, 'btn-fav-card')
+  : '';
+
+return `
+  <a href="/product.html?id=${product.id}" class="${cardClass}">
+    <div class="product-image-wrap">
+      <img src="${img}" alt="${this.escapeHTML(product.title)}" loading="lazy">
+      ${/* تم إيقاف عرض المشاهدات مؤقتاً */ ''}
+      ${isFeatured ? `<div class="featured-badge">⭐ مميز</div>` : ''}
+      ${isSold ? `<div class="sold-overlay">🔴 تم البيع</div>` : ''}
+      ${favBtn}
+    </div>
+    <div class="product-info">
+      <div class="product-title">${this.escapeHTML(product.title)}</div>
+      <div class="product-price">${price}</div>
+      ${location ? `<div class="product-location">📍 ${this.escapeHTML(location)}</div>` : ''}
+    </div>
+  </a>
+`;
 },
 
   /* تأمين النصوص من HTML */
