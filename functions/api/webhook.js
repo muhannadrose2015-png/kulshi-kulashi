@@ -228,6 +228,7 @@ async function handleRejectAction(actionText, id, callbackId, messageId, chatId,
 }
 
 /* ===== حذف إعلان ===== */
+/* ===== حذف إعلان + صوره ===== */
 async function handleDeleteAd(productId, callbackId, messageId, chatId, env) {
   try {
     const repoFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/ads.json`;
@@ -247,13 +248,79 @@ async function handleDeleteAd(productId, callbackId, messageId, chatId, env) {
       decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))))
     );
 
-    const filtered = ads.filter(ad => String(ad.id) !== String(productId) && ad.orderCode !== productId);
+    // ===== 1. البحث عن الإعلان المُراد حذفه =====
+    const targetAd = ads.find(ad =>
+      String(ad.id) === String(productId) || ad.orderCode === productId
+    );
 
-    if (filtered.length === ads.length) {
+    if (!targetAd) {
       await editMessage(env, chatId, messageId, '⚠️ الإعلان غير موجود (ربما حُذف)', null);
       await answerCallback(env, callbackId, '⚠️ غير موجود');
       return;
     }
+
+    // ===== 2. جمع صور الإعلان =====
+    const imagesToDelete = (targetAd.images && Array.isArray(targetAd.images))
+      ? targetAd.images
+      : [];
+
+    // ===== 3. حذف الصور من GitHub =====
+    let imagesDeletedCount = 0;
+
+    for (const imageUrl of imagesToDelete) {
+      try {
+        const match = imageUrl.match(/raw\.githubusercontent\.com\/[^\/]+\/[^\/]+\/[^\/]+\/(.+)$/);
+        if (!match || !match[1]) continue;
+
+        const filePath = match[1];
+
+        // الحصول على SHA
+        const getFile = await fetch(
+          `https://api.github.com/repos/${env.GITHUB_REPO}/contents/${filePath}`,
+          {
+            headers: {
+              'Authorization': `token ${env.GITHUB_TOKEN}`,
+              'User-Agent': 'Kulshi-Kulashi',
+              'Accept': 'application/vnd.github.v3+json'
+            }
+          }
+        );
+
+        if (!getFile.ok) continue;
+
+        const fileInfo = await getFile.json();
+
+        // حذف الملف
+        const deleteRes = await fetch(
+          `https://api.github.com/repos/${env.GITHUB_REPO}/contents/${filePath}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `token ${env.GITHUB_TOKEN}`,
+              'User-Agent': 'Kulshi-Kulashi',
+              'Accept': 'application/vnd.github.v3+json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              message: `Delete image ${filePath}`,
+              sha: fileInfo.sha,
+              branch: 'main'
+            })
+          }
+        );
+
+        if (deleteRes.ok) {
+          imagesDeletedCount++;
+        }
+      } catch (imgErr) {
+        console.error('Image delete error:', imageUrl, imgErr);
+      }
+    }
+
+    // ===== 4. حذف الإعلان من ads.json =====
+    const filtered = ads.filter(ad =>
+      String(ad.id) !== String(productId) && ad.orderCode !== productId
+    );
 
     const newContent = JSON.stringify(filtered, null, 2);
     const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
@@ -267,7 +334,7 @@ async function handleDeleteAd(productId, callbackId, messageId, chatId, env) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        message: `Delete ad ${productId}`,
+        message: `Delete ad ${productId} + ${imagesDeletedCount} images`,
         content: encodedContent,
         sha: fileData.sha,
         branch: 'main'
@@ -276,10 +343,16 @@ async function handleDeleteAd(productId, callbackId, messageId, chatId, env) {
 
     if (!putResponse.ok) throw new Error('فشل الحذف');
 
-    await editMessage(env, chatId, messageId, '🗑️ <b>تم حذف الإعلان بنجاح!</b>', null);
-    await answerCallback(env, callbackId, '✅ تم الحذف');
+    // ===== 5. تعديل رسالة تليجرام =====
+    const successMsg = `🗑️ <b>تم حذف الإعلان بنجاح!</b>\n\n` +
+      `📦 <b>العنوان:</b> ${escapeHTML(targetAd.title)}\n` +
+      `🖼️ <b>الصور المحذوفة:</b> ${imagesDeletedCount}/${imagesToDelete.length}`;
+
+    await editMessage(env, chatId, messageId, successMsg, null);
+    await answerCallback(env, callbackId, `✅ تم الحذف (${imagesDeletedCount} صورة)`);
 
   } catch (e) {
+    console.error('Delete ad error:', e);
     await answerCallback(env, callbackId, '❌ فشل: ' + e.message);
   }
 }
