@@ -441,5 +441,27 @@
     "createdAt": "2026-10-13T10:30:16.454Z",
     "publishedAt": "2026-10-13T10:30:16.454Z",
     "autoPublished": true
+  },
+  {
+    "id": "ad_1791915312126_20",
+    "orderCode": "KK-2026-9488",
+    "title": "مجموعة اقراص ps4/ps5",
+    "category": "electronics",
+    "price": 125000,
+    "currency": "IQD",
+    "description": "البضاعة مستعملة وفي حالة جيدة جدا .",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791913858393_666.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07856761412",
+    "ownerName": "مهند زهير",
+    "ownerPhone": "07856761412",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-10-13T18:15:12.126Z",
+    "publishedAt": "2026-10-13T18:15:12.126Z",
+    "autoPublished": true
   }
 ]
