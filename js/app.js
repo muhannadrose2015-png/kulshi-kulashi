@@ -149,7 +149,7 @@ const App = {
   },
 
   /* إنشاء بطاقة منتج HTML */
-  productCardHTML(product, views = 0) {
+productCardHTML(product, views = 0) {
   const img = (product.images && product.images[0])
     ? product.images[0]
     : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23999">📷</text></svg>';
@@ -162,26 +162,25 @@ const App = {
   const cardClass = `product-card ${isSold ? 'sold' : ''} ${isFeatured ? 'is-featured' : ''}`;
 
   // زر المفضلة ❤️
-const favBtn = (typeof Favorites !== 'undefined')
-  ? Favorites.buttonHTML(product.id, 'btn-fav-card')
-  : '';
+  const favBtn = (typeof Favorites !== 'undefined')
+    ? Favorites.buttonHTML(product.id, 'btn-fav-card')
+    : '';
 
-return `
-  <a href="/product.html?id=${product.id}" class="${cardClass}">
-    <div class="product-image-wrap">
-      <img src="${img}" alt="${this.escapeHTML(product.title)}" loading="lazy">
-    ${/* تم إيقاف عرض المشاهدات مؤقتاً */ ''}
-  ${isFeatured ? `<div class="featured-badge">⭐ مميز</div>` : ''}
-  ${isSold ? `<div class="sold-overlay">🔴 تم البيع</div>` : ''}
-  ${(typeof Favorites !== 'undefined') ? Favorites.buttonHTML(product.id, 'btn-fav-card') : ''}
-</div>
-    <div class="product-info">
-      <div class="product-title">${this.escapeHTML(product.title)}</div>
-      <div class="product-price">${price}</div>
-      ${location ? `<div class="product-location">📍 ${this.escapeHTML(location)}</div>` : ''}
-    </div>
-  </a>
-`;
+  return `
+    <a href="/product.html?id=${product.id}" class="${cardClass}">
+      <div class="product-image-wrap">
+        <img src="${img}" alt="${this.escapeHTML(product.title)}" loading="lazy">
+        ${isFeatured ? `<div class="featured-badge">⭐ مميز</div>` : ''}
+        ${isSold ? `<div class="sold-overlay">🔴 تم البيع</div>` : ''}
+        ${favBtn}
+      </div>
+      <div class="product-info">
+        <div class="product-title">${this.escapeHTML(product.title)}</div>
+        <div class="product-price">${price}</div>
+        ${location ? `<div class="product-location">📍 ${this.escapeHTML(location)}</div>` : ''}
+      </div>
+    </a>
+  `;
 },
 
   /* تأمين النصوص من HTML */
