@@ -2,6 +2,7 @@
    Cloudflare Function - الحذف التلقائي
    المسار: /api/auto-delete?secret=XXX
    يعمل عبر Cron Job مرة يومياً
+   يحذف الإعلانات المنتهية + صورها
    ========================================== */
 
 export async function onRequest(context) {
@@ -59,8 +60,8 @@ export async function onRequest(context) {
         success: true,
         deleted: 0,
         kept: 0,
-        message: 'لا توجد إعلانات',
-        settings: settings
+        imagesDeleted: 0,
+        message: 'لا توجد إعلانات'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -69,6 +70,7 @@ export async function onRequest(context) {
     const now = new Date();
     const kept = [];
     const deleted = [];
+    const imagesToDelete = [];
 
     // ===== فحص كل إعلان =====
     for (const ad of ads) {
@@ -81,8 +83,9 @@ export async function onRequest(context) {
 
       const daysSincePublish = (now - publishDate) / (1000 * 60 * 60 * 24);
 
-      // تحديد مدة العمر من الإعدادات
       let lifespanDays = settings.adLifespan;
+      let shouldDelete = false;
+      let reason = '';
 
       if (ad.sold === true) {
         // الإعلان المباع
@@ -90,31 +93,33 @@ export async function onRequest(context) {
         if (!isNaN(soldDate.getTime())) {
           const daysSinceSold = (now - soldDate) / (1000 * 60 * 60 * 24);
           if (daysSinceSold >= settings.soldLifespan) {
-            deleted.push({
-              code: ad.orderCode || ad.id,
-              title: ad.title,
-              reason: 'sold-expired',
-              days: Math.round(daysSinceSold)
-            });
-            continue;
+            shouldDelete = true;
+            reason = 'sold-expired';
           }
-          kept.push(ad);
-          continue;
         }
-      } else if (ad.isFeatured === true) {
-        // الإعلان المميز
-        lifespanDays = settings.featuredLifespan;
+      } else {
+        if (ad.isFeatured === true) {
+          lifespanDays = settings.featuredLifespan;
+        }
+        if (daysSincePublish >= lifespanDays) {
+          shouldDelete = true;
+          reason = 'lifespan-expired';
+        }
       }
 
-      // فحص المدة
-      if (daysSincePublish >= lifespanDays) {
+      if (shouldDelete) {
         deleted.push({
           code: ad.orderCode || ad.id,
           title: ad.title,
-          reason: 'lifespan-expired',
-          days: Math.round(daysSincePublish),
-          lifespan: lifespanDays
+          reason: reason,
+          lifespan: lifespanDays,
+          days: Math.round(daysSincePublish)
         });
+
+        // جمع صور الإعلان للحذف
+        if (ad.images && Array.isArray(ad.images)) {
+          imagesToDelete.push(...ad.images);
+        }
       } else {
         kept.push(ad);
       }
@@ -126,18 +131,78 @@ export async function onRequest(context) {
         success: true,
         deleted: 0,
         kept: kept.length,
-        message: 'لا توجد إعلانات منتهية',
-        settings: {
-          adLifespan: settings.adLifespan,
-          featuredLifespan: settings.featuredLifespan,
-          soldLifespan: settings.soldLifespan
-        }
+        imagesDeleted: 0,
+        message: 'لا توجد إعلانات منتهية'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // ===== كتابة ads.json الجديد =====
+    // ===== 1. حذف الصور أولاً (قبل تعديل ads.json) =====
+    let imagesDeletedCount = 0;
+
+    if (imagesToDelete.length > 0) {
+      try {
+        // حذف كل صورة (مع حد أقصى لحماية Rate Limit)
+        const MAX_IMAGES_PER_RUN = 50;
+        const imagesToProcess = imagesToDelete.slice(0, MAX_IMAGES_PER_RUN);
+
+        for (const imageUrl of imagesToProcess) {
+          try {
+            // استخراج مسار الملف
+            const match = imageUrl.match(/raw\.githubusercontent\.com\/[^\/]+\/[^\/]+\/[^\/]+\/(.+)$/);
+            if (!match || !match[1]) continue;
+
+            const filePath = match[1];
+
+            // الحصول على SHA
+            const getFile = await fetch(
+              `https://api.github.com/repos/${env.GITHUB_REPO}/contents/${filePath}`,
+              {
+                headers: {
+                  'Authorization': `token ${env.GITHUB_TOKEN}`,
+                  'User-Agent': 'Kulshi-Kulashi',
+                  'Accept': 'application/vnd.github.v3+json'
+                }
+              }
+            );
+
+            if (!getFile.ok) continue;
+
+            const fileInfo = await getFile.json();
+
+            // حذف الملف
+            const deleteRes = await fetch(
+              `https://api.github.com/repos/${env.GITHUB_REPO}/contents/${filePath}`,
+              {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `token ${env.GITHUB_TOKEN}`,
+                  'User-Agent': 'Kulshi-Kulashi',
+                  'Accept': 'application/vnd.github.v3+json',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  message: `Auto-delete image ${filePath}`,
+                  sha: fileInfo.sha,
+                  branch: 'main'
+                })
+              }
+            );
+
+            if (deleteRes.ok) {
+              imagesDeletedCount++;
+            }
+          } catch (imgErr) {
+            console.error('Image delete error:', imageUrl, imgErr);
+          }
+        }
+      } catch (e) {
+        console.error('Delete images batch error:', e);
+      }
+    }
+
+    // ===== 2. كتابة ads.json الجديد =====
     const newContent = JSON.stringify(kept, null, 2);
     const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
 
@@ -150,7 +215,7 @@ export async function onRequest(context) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        message: `Auto-delete ${deleted.length} expired ad(s)`,
+        message: `Auto-delete ${deleted.length} expired ad(s) + ${imagesDeletedCount} images`,
         content: encodedContent,
         sha: currentSha,
         branch: 'main'
@@ -162,7 +227,7 @@ export async function onRequest(context) {
       throw new Error(errData.message || 'فشل الحذف');
     }
 
-    // ===== إشعار في تليجرام =====
+    // ===== 3. إشعار في تليجرام =====
     if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
       try {
         const msg = `<b>🗑️ حذف تلقائي</b>\n` +
@@ -174,7 +239,8 @@ export async function onRequest(context) {
             return `• ${escapeHTML(d.title)} ${reason}`;
           }).join('\n') +
           (deleted.length > 10 ? `\n\n...و ${deleted.length - 10} آخرين` : '') +
-          `\n\n⏰ ${new Date().toLocaleString('ar-IQ')}`;
+          `\n\n🖼️ تم حذف <b>${imagesDeletedCount}</b> صورة\n` +
+          `⏰ ${new Date().toLocaleString('ar-IQ')}`;
 
         await fetch(
           `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
@@ -195,12 +261,9 @@ export async function onRequest(context) {
       success: true,
       deleted: deleted.length,
       kept: kept.length,
+      imagesDeleted: imagesDeletedCount,
+      imagesRequested: imagesToDelete.length,
       details: deleted,
-      settings: {
-        adLifespan: settings.adLifespan,
-        featuredLifespan: settings.featuredLifespan,
-        soldLifespan: settings.soldLifespan
-      },
       timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -253,7 +316,6 @@ async function getSettings(env) {
 
     return settings;
   } catch (e) {
-    console.error('Get settings error:', e);
     return defaults;
   }
 }
