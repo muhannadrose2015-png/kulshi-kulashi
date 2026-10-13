@@ -1,13 +1,12 @@
 /* ==========================================
    favorites.js - نظام المفضلة
-   يحفظ الإعلانات في LocalStorage
    ========================================== */
 
 const Favorites = {
 
   STORAGE_KEY: 'kk_favorites',
 
-  /* ===== قراءة كل المفضلة ===== */
+  /* قراءة كل المفضلة */
   getAll() {
     try {
       const data = localStorage.getItem(this.STORAGE_KEY);
@@ -17,24 +16,23 @@ const Favorites = {
     }
   },
 
-  /* ===== حفظ المفضلة ===== */
+  /* حفظ المفضلة */
   saveAll(list) {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(list));
       return true;
     } catch (e) {
-      console.error('Save favorites error:', e);
       return false;
     }
   },
 
-  /* ===== هل الإعلان في المفضلة؟ ===== */
+  /* هل الإعلان في المفضلة؟ */
   isFavorite(productId) {
     const list = this.getAll();
     return list.some(f => String(f.id) === String(productId));
   },
 
-  /* ===== إضافة إلى المفضلة ===== */
+  /* إضافة */
   add(product) {
     if (this.isFavorite(product.id)) return true;
 
@@ -52,14 +50,14 @@ const Favorites = {
     return this.saveAll(list);
   },
 
-  /* ===== إزالة من المفضلة ===== */
+  /* إزالة */
   remove(productId) {
     const list = this.getAll();
     const filtered = list.filter(f => String(f.id) !== String(productId));
     return this.saveAll(filtered);
   },
 
-  /* ===== تبديل (إضافة/إزالة) ===== */
+  /* تبديل */
   toggle(product) {
     if (this.isFavorite(product.id)) {
       this.remove(product.id);
@@ -70,12 +68,12 @@ const Favorites = {
     }
   },
 
-  /* ===== عدد المفضلة ===== */
+  /* عدد */
   count() {
     return this.getAll().length;
   },
 
-  /* ===== حذف كل المفضلة ===== */
+  /* حذف الكل */
   clearAll() {
     try {
       localStorage.removeItem(this.STORAGE_KEY);
@@ -85,30 +83,37 @@ const Favorites = {
     }
   },
 
-  /* ===== عرض زر ❤️ ===== */
+  /* HTML زر المفضلة */
   buttonHTML(productId, extraClass = '') {
     const isFav = this.isFavorite(productId);
-    return `
-      <button class="fav-btn ${isFav ? 'active' : ''} ${extraClass}" 
-              onclick="Favorites.toggleById('${productId}', event)" 
-              title="${isFav ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}">
-        ${isFav ? '❤️' : '🤍'}
-      </button>
-    `;
+    return `<button class="fav-btn ${isFav ? 'active' : ''} ${extraClass}" 
+                    onclick="Favorites.toggleById('${productId}', event)" 
+                    title="${isFav ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}">${isFav ? '❤️' : '🤍'}</button>`;
   },
 
-  /* ===== تبديل بواسطة ID ===== */
+  /* تبديل بواسطة ID */
   async toggleById(productId, event) {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
 
-    // جلب الإعلان من السيرفر
     try {
-      const product = await Products.getById(productId);
+      // البحث عن الإعلان
+      let product = null;
+
+      // أولاً: من الـ cache
+      if (window.Products && Products._cache) {
+        product = Products._cache.find(p => String(p.id) === String(productId));
+      }
+
+      // ثانياً: من السيرفر
+      if (!product && window.Products) {
+        product = await Products.getById(productId);
+      }
+
       if (!product) {
-        App.toast('لم يتم العثور على الإعلان', 'error');
+        if (window.App) App.toast('لم يتم العثور على الإعلان', 'error');
         return;
       }
 
@@ -125,21 +130,23 @@ const Favorites = {
       }
 
       // إشعار
-      App.toast(
-        isNowFavorite ? '❤️ أُضيف إلى المفضلة' : '💔 أُزيل من المفضلة',
-        'success'
-      );
+      if (window.App) {
+        App.toast(
+          isNowFavorite ? '❤️ أُضيف إلى المفضلة' : '💔 أُزيل من المفضلة',
+          'success'
+        );
+      }
 
-      // تحديث عدّاد المفضلة في الشريط السفلي
+      // تحديث العدّاد
       this.updateBadge();
 
     } catch (e) {
       console.error('Toggle favorite error:', e);
-      App.toast('حدث خطأ', 'error');
+      if (window.App) App.toast('حدث خطأ', 'error');
     }
   },
 
-  /* ===== تحديث عدّاد المفضلة ===== */
+  /* تحديث عدّاد المفضلة */
   updateBadge() {
     const badge = document.getElementById('favBadge');
     if (!badge) return;
@@ -153,7 +160,7 @@ const Favorites = {
     }
   },
 
-  /* ===== عرض صفحة المفضلة ===== */
+  /* عرض صفحة المفضلة */
   async renderPage(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -174,57 +181,61 @@ const Favorites = {
       return;
     }
 
-    // جلب بيانات الإعلانات الكاملة
-    const allProducts = await Products.loadAll();
-    const views = await Products.loadViews();
+    try {
+      const allProducts = await Products.loadAll();
+      const views = await Products.loadViews();
 
-    // تصفية الإعلانات الموجودة فقط
-    const validFavorites = list.filter(fav => 
-      allProducts.some(p => String(p.id) === String(fav.id))
-    );
+      // تصفية الإعلانات الموجودة
+      const validFavorites = list.filter(fav =>
+        allProducts.some(p => String(p.id) === String(fav.id))
+      );
 
-    // إذا بعض الإعلانات محذوفة، حدّث القائمة
-    if (validFavorites.length !== list.length) {
-      this.saveAll(validFavorites);
-    }
+      // تحديث القائمة
+      if (validFavorites.length !== list.length) {
+        this.saveAll(validFavorites);
+      }
 
-    if (validFavorites.length === 0) {
+      if (validFavorites.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <h3>الإعلانات المحفوظة لم تعد موجودة</h3>
+            <p>يبدو أن الإعلانات قد حُذفت</p>
+            <a href="/" class="btn btn-primary" style="margin-top:15px;">
+              🏠 تصفح الإعلانات
+            </a>
+          </div>
+        `;
+        return;
+      }
+
       container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">📭</div>
-          <h3>الإعلانات المحفوظة لم تعد موجودة</h3>
-          <p>يبدو أن الإعلانات التي حفظتها قد حُذفت</p>
-          <a href="/" class="btn btn-primary" style="margin-top:15px;">
-            🏠 تصفح الإعلانات
-          </a>
+        <div class="favorites-info">
+          ❤️ لديك <strong>${validFavorites.length}</strong> إعلان في المفضلة
+        </div>
+        <div class="products-grid">
+          ${validFavorites.map(fav => {
+            const product = allProducts.find(p => String(p.id) === String(fav.id));
+            return App.productCardHTML(product, views[product.id] || 0);
+          }).join('')}
+        </div>
+        <div style="text-align:center; margin-top:20px;">
+          <button class="btn btn-secondary" onclick="Favorites.confirmClear()">
+            🗑️ حذف كل المفضلة
+          </button>
         </div>
       `;
-      return;
+    } catch (e) {
+      console.error('Render favorites error:', e);
+      container.innerHTML = '<div class="empty-state"><p>حدث خطأ في التحميل</p></div>';
     }
-
-    container.innerHTML = `
-      <div class="favorites-info">
-        ❤️ لديك <strong>${validFavorites.length}</strong> إعلان في المفضلة
-      </div>
-      <div class="products-grid" id="favoritesGrid">
-        ${validFavorites.map(fav => {
-          const product = allProducts.find(p => String(p.id) === String(fav.id));
-          return App.productCardHTML(product, views[product.id] || 0);
-        }).join('')}
-      </div>
-      <div style="text-align:center; margin-top:20px;">
-        <button class="btn btn-secondary" onclick="Favorites.confirmClear()">
-          🗑️ حذف كل المفضلة
-        </button>
-      </div>
-    `;
   },
 
-  /* ===== تأكيد حذف الكل ===== */
+  /* تأكيد الحذف */
   confirmClear() {
-    if (confirm('هل تريد حذف كل الإعلانات من المفضلة؟\n\nلا يمكن التراجع.')) {
+    if (confirm('هل تريد حذف كل الإعلانات من المفضلة؟')) {
       this.clearAll();
-      App.toast('✅ تم حذف المفضلة', 'success');
+      if (window.App) App.toast('✅ تم حذف المفضلة', 'success');
       setTimeout(() => location.reload(), 500);
     }
   }
