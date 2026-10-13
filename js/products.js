@@ -262,9 +262,17 @@ const Products = {
   const price = App.formatPrice(product.price, product.currency);
   const isSold = product.sold === true;
 
-  const waLink = App.whatsappLink(
-    product.whatsapp || product.ownerPhone,
-    `مرحباً، مهتم بـ: ${product.title}`
+  // ===== بناء رسالة الواتساب الجاهزة =====
+const sellerName = product.ownerName || 'البائع';
+const waMessage = 
+  `كلشي كلاشي - مرحبا ${sellerName}\n` +
+  `هل لا زال العرض موجوداً؟\n\n` +
+  `📦 ${product.title}\n` +
+  `💰 ${price}`;
+
+const waLink = App.whatsappLink(
+  product.whatsapp || product.ownerPhone,
+  waMessage
   );
 
      const isFeatured = product.isFeatured === true && !isSold;
