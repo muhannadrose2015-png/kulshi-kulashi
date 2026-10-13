@@ -338,6 +338,7 @@ const featuredBanner = isFeatured ? `
 
         <div class="product-actions">
           ${waButton}
+          ${Favorites.buttonHTML(product.id, 'btn-fav-main')}
           <button class="btn btn-report" onclick="Products.shareProduct('${product.id}')">
             📤 مشاركة
           </button>
