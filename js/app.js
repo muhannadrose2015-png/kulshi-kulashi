@@ -165,7 +165,7 @@ const App = {
     <a href="/product.html?id=${product.id}" class="${cardClass}">
       <div class="product-image-wrap">
         <img src="${img}" alt="${this.escapeHTML(product.title)}" loading="lazy">
-        ${views > 0 && !isSold ? `<div class="views-badge">👁️ ${views}</div>` : ''}
+        ${/* تم إيقاف عرض المشاهدات مؤقتاً */ ''}
         ${isFeatured ? `<div class="featured-badge">⭐ مميز</div>` : ''}
         ${isSold ? `<div class="sold-overlay">🔴 تم البيع</div>` : ''}
       </div>
