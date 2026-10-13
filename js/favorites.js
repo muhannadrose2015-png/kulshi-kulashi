@@ -242,3 +242,54 @@ const Favorites = {
 };
 
 window.Favorites = Favorites;
+
+
+
+/* ==========================================
+   إضافة تلقائية لرابط المفضلة في الشريط السفلي
+   يعمل على جميع الصفحات
+   ========================================== */
+(function() {
+  function addFavoritesNavLink() {
+    const nav = document.querySelector('.bottom-nav');
+    if (!nav) return;
+
+    // إذا كان الرابط موجوداً، لا نفعل شيئاً
+    if (nav.querySelector('a[href="/favorites.html"]')) {
+      // تحديث العدّاد فقط
+      if (typeof Favorites !== 'undefined') {
+        Favorites.updateBadge();
+      }
+      return;
+    }
+
+    // ابحث عن رابط "الإضافة" كمرجع
+    const addLink = nav.querySelector('a[href="/add.html"]');
+    if (!addLink) return;
+
+    // أنشئ رابط المفضلة
+    const favLink = document.createElement('a');
+    favLink.href = '/favorites.html';
+    favLink.className = 'nav-item';
+    favLink.innerHTML = `
+      <span class="nav-icon">❤️</span>
+      <span>المفضلة</span>
+      <span class="fav-badge" id="favBadge" style="display:none;">0</span>
+    `;
+
+    // أضفه بعد "الإضافة"
+    addLink.insertAdjacentElement('afterend', favLink);
+
+    // تحديث العدّاد
+    if (typeof Favorites !== 'undefined') {
+      Favorites.updateBadge();
+    }
+  }
+
+  // التشغيل بعد تحميل الصفحة
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', addFavoritesNavLink);
+  } else {
+    addFavoritesNavLink();
+  }
+})();
