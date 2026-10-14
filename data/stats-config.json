@@ -1,6 +1,5 @@
 {
   "_دليل": "🔴 غيّر showToPublic إلى true لإظهار الإحصائيات للزوار",
-  
-  "showToPublic": false,
+  "showToPublic": true,
   "_showToPublic_شرح": "false = الإحصائيات تظهر فقط في لوحة الأدمن | true = تظهر للزوار في الصفحة الرئيسية"
 }
