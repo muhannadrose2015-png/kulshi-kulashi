@@ -122,7 +122,10 @@
   if (typeof Favorites !== 'undefined') {
     Favorites.updateBadge();
   }
-
+// تسجيل الزيارة (للإحصائيات)
+if (window.trackVisit) {
+  trackVisit();
+}
   // تحميل الإعلانات والأصناف
   await Products.initHomePage();
 })();
@@ -234,6 +237,18 @@ window.addEventListener('appinstalled', () => {
   App.toast('🎉 شكراً لتثبيت التطبيق!', 'success');
   dismissInstallBanner();
 });
+
+  /* تسجيل الزيارة */
+async function trackVisit() {
+  try {
+    await fetch('/api/track-visit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (e) {
+    // نتجاهل الخطأ - الزيارة لا تعطل الموقع
+  }
+}
 </script>
 </body>
 </html>
