@@ -622,5 +622,27 @@
     "createdAt": "2026-10-14T13:30:17.375Z",
     "publishedAt": "2026-10-14T13:30:17.375Z",
     "autoPublished": true
+  },
+  {
+    "id": "ad_1791985813704_103",
+    "orderCode": "KK-2026-7503",
+    "title": "بلي 2 نظيف",
+    "category": "electronics",
+    "price": 55000,
+    "currency": "IQD",
+    "description": "بلي ستيشن 2 مستعمل مع يدتين وهارد العاب",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791984352814_1968.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07856761412",
+    "ownerName": "السوق السوداء",
+    "ownerPhone": "07856761412",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-10-14T13:50:13.704Z",
+    "publishedAt": "2026-10-14T13:50:13.704Z",
+    "autoPublished": true
   }
 ]
