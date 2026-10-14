@@ -3,6 +3,7 @@
    المسار: /api/register-user
    Body: { phone, name, city }
    يُسجّل كل مستخدم مرة واحدة فقط
+   لا يُرسل إشعارات تليجرام
    ========================================== */
 
 export async function onRequest(context) {
@@ -90,38 +91,6 @@ export async function onRequest(context) {
     const totalUsers = (parseInt(totalUsersRaw) || 0) + 1;
     await env.VIEWS_KV.put(totalUsersKey, String(totalUsers));
 
-    // ===== إشعار في تليجرام (اختياري) =====
-    if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
-      try {
-        // نحصل على العدد الحالي
-        const currentUsersRaw = await env.VIEWS_KV.get(totalUsersKey);
-        const currentUsers = parseInt(currentUsersRaw) || 0;
-
-        const msg = `<b>👤 مستخدم جديد</b>\n` +
-          `━━━━━━━━━━━━━━━━━━━━\n\n` +
-          `<b>الاسم:</b> ${escapeHTML(name)}\n` +
-          `<b>الهاتف:</b> ${escapeHTML(phone)}\n` +
-          (city ? `<b>المدينة:</b> ${escapeHTML(city)}\n` : '') +
-          `\n<b>📊 إجمالي المستخدمين:</b> ${currentUsers}\n\n` +
-          `⏰ ${new Date().toLocaleString('ar-IQ')}`;
-
-        await fetch(
-          `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: env.TELEGRAM_CHAT_ID,
-              text: msg,
-              parse_mode: 'HTML'
-            })
-          }
-        );
-      } catch (e) {
-        console.error('Telegram notify error:', e);
-      }
-    }
-
     return new Response(JSON.stringify({
       success: true,
       isNew: true,
@@ -149,13 +118,4 @@ async function hashString(str) {
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/* ===== حماية HTML ===== */
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 }
