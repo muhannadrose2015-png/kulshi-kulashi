@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اختبار التسجيل</title>
+<style>
+  body {
+    font-family: Tahoma, sans-serif;
+    padding: 20px;
+    background: #f5f5f5;
+  }
+  h1 { color: #232f3e; }
+  button {
+    padding: 20px 40px;
+    font-size: 18px;
+    background: #ff9900;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: bold;
+  }
+  button:active { background: #e88a00; }
+  pre {
+    background: #232f3e;
+    color: #0f0;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    direction: ltr;
+    text-align: left;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+  <h1>🧪 اختبار التسجيل</h1>
+  <p>اضغط الزر لاختبار دالة التسجيل:</p>
+  <button onclick="testRegister()">🚀 اضغط للاختبار</button>
+  <pre id="result">النتيجة ستظهر هنا...</pre>
+
+  <script>
+    async function testRegister() {
+      const result = document.getElementById('result');
+      result.textContent = '⏳ جارٍ الاختبار...';
+
+      try {
+        const response = await fetch('/api/register-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: '07799998888',
+            name: 'اختبار',
+            city: 'بغداد'
+          })
+        });
+
+        const data = await response.json();
+        result.textContent = '✅ الرد:\n\n' + JSON.stringify(data, null, 2);
+      } catch (e) {
+        result.textContent = '❌ خطأ:\n\n' + e.message;
+      }
+    }
+  </script>
+</body>
+</html>
