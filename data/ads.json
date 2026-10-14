@@ -510,5 +510,27 @@
     "isFeatured": false,
     "createdAt": "2026-10-13T19:23:17.013Z",
     "publishedAt": "2026-10-13T19:23:17.013Z"
+  },
+  {
+    "id": "ad_1791975013383_177",
+    "orderCode": "KK-2026-9376",
+    "title": "دراجة هارلي شحن",
+    "category": "cars",
+    "price": 200000,
+    "currency": "IQD",
+    "description": "البطاريات متوسطة العمر\nيحتاج تبديل ولف العجلة الخلفية",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791973786446_24.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07851131155",
+    "ownerName": "ابو خالد",
+    "ownerPhone": "07851131155",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-10-14T10:50:13.383Z",
+    "publishedAt": "2026-10-14T10:50:13.383Z",
+    "autoPublished": true
   }
 ]
