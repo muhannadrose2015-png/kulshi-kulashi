@@ -7,6 +7,133 @@
 <title>⚙️ لوحة التحكم</title>
 <link rel="stylesheet" href="/css/admin.css">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  .site-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 15px;
+  }
+
+  .site-stat-box {
+    background: linear-gradient(135deg, #232f3e 0%, #37475a 100%);
+    color: white;
+    border-radius: 10px;
+    padding: 18px 12px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .site-stat-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: #ff9900;
+  }
+
+  .site-stat-icon {
+    font-size: 24px;
+    margin-bottom: 5px;
+  }
+
+  .site-stat-number {
+    font-size: 26px;
+    font-weight: bold;
+    color: #ff9900;
+    margin-bottom: 4px;
+  }
+
+  .site-stat-label {
+    font-size: 12px;
+    opacity: 0.85;
+  }
+
+  .toggle-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 10px;
+    border: 2px solid #e0e0e0;
+  }
+
+  .toggle-container.active {
+    border-color: #4caf50;
+    background: #f1f8f4;
+  }
+
+  .toggle-info {
+    flex: 1;
+  }
+
+  .toggle-title {
+    font-weight: bold;
+    font-size: 14px;
+    color: #232f3e;
+    margin-bottom: 4px;
+  }
+
+  .toggle-desc {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 56px;
+    height: 30px;
+    background: #ccc;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: 0.3s;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+
+  .toggle-switch.active {
+    background: #4caf50;
+  }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  .toggle-switch.active::after {
+    right: calc(100% - 27px);
+  }
+
+  .refresh-btn {
+    background: #e7e9ec;
+    color: #232f3e;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .refresh-btn:active {
+    background: #d5d8dc;
+  }
+</style>
 </head>
 <body>
 
@@ -31,6 +158,57 @@
 
   <div class="admin-content">
 
+    <!-- ===== إحصائيات الموقع ===== -->
+    <section class="card" style="grid-column: 1 / -1;">
+      <h2>
+        📊 إحصائيات الموقع
+        <button onclick="loadSiteStats()" class="refresh-btn" style="float:left;">
+          🔄 تحديث
+        </button>
+      </h2>
+
+      <div class="site-stats-grid">
+        <div class="site-stat-box">
+          <div class="site-stat-icon">👥</div>
+          <div class="site-stat-number" id="siteStatVisitors">-</div>
+          <div class="site-stat-label">إجمالي الزوار</div>
+        </div>
+
+        <div class="site-stat-box">
+          <div class="site-stat-icon">👤</div>
+          <div class="site-stat-number" id="siteStatUsers">-</div>
+          <div class="site-stat-label">المستخدمون</div>
+        </div>
+
+        <div class="site-stat-box">
+          <div class="site-stat-icon">📅</div>
+          <div class="site-stat-number" id="siteStatTodayVisitors">-</div>
+          <div class="site-stat-label">زوار اليوم</div>
+        </div>
+
+        <div class="site-stat-box">
+          <div class="site-stat-icon">📦</div>
+          <div class="site-stat-number" id="siteStatAds">-</div>
+          <div class="site-stat-label">الإعلانات</div>
+        </div>
+      </div>
+
+      <div class="toggle-container" id="toggleContainer">
+        <div class="toggle-info">
+          <div class="toggle-title">👁️ إظهار الإحصائيات للزوار</div>
+          <div class="toggle-desc">
+            عندما تكون مُفعّلة، تظهر الأرقام للزوار في الصفحة الرئيسية
+          </div>
+        </div>
+        <div class="toggle-switch" id="toggleSwitch" onclick="toggleShowToPublic()"></div>
+      </div>
+
+      <p style="font-size:12px; color:#999; margin-top:10px;">
+        📅 آخر تحديث: <span id="siteStatsLastUpdate">-</span>
+      </p>
+    </section>
+
+    <!-- ===== حالة الاتصالات ===== -->
     <section class="card">
       <h2>📊 حالة الاتصالات</h2>
       <div class="status-grid">
@@ -53,6 +231,7 @@
       <button onclick="checkStatus()" class="btn-secondary">🔄 إعادة الفحص</button>
     </section>
 
+    <!-- ===== اختبار الإرسال ===== -->
     <section class="card">
       <h2>🧪 اختبار الإرسال</h2>
       <p>أرسل رسالة تجريبية إلى تليجرام للتأكد من عمل البوت</p>
@@ -60,6 +239,7 @@
       <p id="testResult" class="test-result"></p>
     </section>
 
+    <!-- ===== الإحصائيات المحلية ===== -->
     <section class="card">
       <h2>📈 الإحصائيات المحلية</h2>
       <div class="stats-grid">
@@ -78,6 +258,7 @@
       </div>
     </section>
 
+    <!-- ===== أدوات ===== -->
     <section class="card">
       <h2>🧹 أدوات</h2>
       <div class="tools-grid">
@@ -88,6 +269,7 @@
       </div>
     </section>
 
+    <!-- ===== معلومات النظام ===== -->
     <section class="card">
       <h2>ℹ️ معلومات النظام</h2>
       <table class="info-table">
@@ -104,5 +286,125 @@
 
 <script src="/js/storage.js"></script>
 <script src="/js/admin.js"></script>
+
+<script>
+/* ==========================================
+   إحصائيات الموقع
+   ========================================== */
+
+const SYNC_SECRET = 'kulshi_sync_2026_secure_xyz';
+
+/* جلب الإحصائيات من السيرفر */
+async function loadSiteStats() {
+  try {
+    const response = await fetch('/api/get-stats?secret=' + SYNC_SECRET);
+    const data = await response.json();
+
+    if (!data.success) {
+      console.error('Stats error:', data.error);
+      return;
+    }
+
+    const stats = data.stats;
+
+    document.getElementById('siteStatVisitors').textContent = stats.visitors.toLocaleString('en-US');
+    document.getElementById('siteStatUsers').textContent = stats.users.toLocaleString('en-US');
+    document.getElementById('siteStatTodayVisitors').textContent = stats.todayVisitors.toLocaleString('en-US');
+    document.getElementById('siteStatAds').textContent = stats.ads.toLocaleString('en-US');
+
+    document.getElementById('siteStatsLastUpdate').textContent =
+      new Date().toLocaleTimeString('ar-IQ');
+
+    // تحديث حالة الـ Toggle
+    updateToggleUI(data.showToPublic);
+
+  } catch (e) {
+    console.error('Load stats error:', e);
+  }
+}
+
+/* تحديث مظهر الـ Toggle */
+function updateToggleUI(isActive) {
+  const toggle = document.getElementById('toggleSwitch');
+  const container = document.getElementById('toggleContainer');
+
+  if (isActive) {
+    toggle.classList.add('active');
+    container.classList.add('active');
+  } else {
+    toggle.classList.remove('active');
+    container.classList.remove('active');
+  }
+}
+
+/* تبديل "إظهار للزوار" */
+async function toggleShowToPublic() {
+  const toggle = document.getElementById('toggleSwitch');
+  const isCurrentlyActive = toggle.classList.contains('active');
+  const newState = !isCurrentlyActive;
+
+  // تأكيد
+  const confirmed = confirm(
+    newState
+      ? 'هل تريد إظهار الإحصائيات للزوار في الصفحة الرئيسية؟'
+      : 'هل تريد إخفاء الإحصائيات عن الزوار؟'
+  );
+
+  if (!confirmed) return;
+
+  // تحديث مؤقت (Optimistic)
+  updateToggleUI(newState);
+
+  try {
+    const response = await fetch('/api/update-stats-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        secret: SYNC_SECRET,
+        showToPublic: newState
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      alert(newState
+        ? '✅ تم تفعيل إظهار الإحصائيات للزوار'
+        : '✅ تم إخفاء الإحصائيات عن الزوار'
+      );
+    } else {
+      // إرجاع الحالة
+      updateToggleUI(isCurrentlyActive);
+      alert('❌ فشل التحديث: ' + (data.error || 'خطأ غير معروف'));
+    }
+
+  } catch (e) {
+    // إرجاع الحالة
+    updateToggleUI(isCurrentlyActive);
+    console.error('Toggle error:', e);
+    alert('❌ فشل الاتصال');
+  }
+}
+
+/* تشغيل عند فتح اللوحة */
+document.addEventListener('DOMContentLoaded', () => {
+  // فحص إذا كنا في اللوحة
+  setTimeout(() => {
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel && adminPanel.style.display !== 'none') {
+      loadSiteStats();
+    }
+  }, 1000);
+
+  // تحديث تلقائي كل 30 ثانية
+  setInterval(() => {
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel && adminPanel.style.display !== 'none') {
+      loadSiteStats();
+    }
+  }, 30000);
+});
+</script>
+
 </body>
 </html>
