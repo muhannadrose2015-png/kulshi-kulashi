@@ -532,5 +532,27 @@
     "createdAt": "2026-10-14T10:50:13.383Z",
     "publishedAt": "2026-10-14T10:50:13.383Z",
     "autoPublished": true
+  },
+  {
+    "id": "ad_1791982509495_309",
+    "orderCode": "KK-2026-8664",
+    "title": "ماكينه سوبر اباذر القديمه 💥",
+    "category": "home",
+    "price": 250000,
+    "currency": "IQD",
+    "description": "ماكينه سوبر اباذر القديمه .. مستعملة شيء قليل ونظيفه جدا ..",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791981284671_2536.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07856761412",
+    "ownerName": "السوق السوداء",
+    "ownerPhone": "07856761412",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-10-14T12:55:09.495Z",
+    "publishedAt": "2026-10-14T12:55:09.495Z",
+    "autoPublished": true
   }
 ]
