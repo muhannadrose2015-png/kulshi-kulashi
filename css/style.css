@@ -1888,3 +1888,64 @@ body {
 .bottom-nav .nav-item {
   position: relative;
 }
+
+/* ==========================================
+   إحصائيات الموقع العامة (للزوار)
+   ========================================== */
+.site-stats-public {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.public-stat-box {
+  background: linear-gradient(135deg, #232f3e 0%, #37475a 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 18px 12px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(35, 47, 62, 0.15);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s;
+}
+
+.public-stat-box:active {
+  transform: scale(0.98);
+}
+
+.public-stat-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  background: #ff9900;
+}
+
+.public-stat-icon {
+  font-size: 26px;
+  margin-bottom: 6px;
+}
+
+.public-stat-number {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ff9900;
+  margin-bottom: 4px;
+  direction: ltr;
+}
+
+.public-stat-label {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+/* للشاشات الكبيرة */
+@media (min-width: 600px) {
+  .site-stats-public {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
