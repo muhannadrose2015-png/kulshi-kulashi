@@ -57,6 +57,13 @@
     📋 عرض كل الإعلانات
   </a>
 </div>
+    <!-- قسم إحصائيات الموقع (يظهر للزوار عند التفعيل) -->
+  <div id="siteStatsSection" style="display:none; margin-top:30px;">
+    <h2 class="section-title">📊 كلشي كلاشي في أرقام</h2>
+    <div class="site-stats-public" id="siteStatsPublic">
+      <!-- يُملأ تلقائياً من JS -->
+    </div>
+  </div>
 </main>
 
 <!-- زر إضافة إعلان (عائم) -->
@@ -118,14 +125,18 @@
   await Ban.checkPageAccess();
   Auth.renderUserHeader();
 
-  // تحديث عدّاد المفضلة
   if (typeof Favorites !== 'undefined') {
     Favorites.updateBadge();
   }
-// تسجيل الزيارة (للإحصائيات)
-if (window.trackVisit) {
-  trackVisit();
-}
+
+  // تسجيل الزيارة
+  if (window.trackVisit) {
+    trackVisit();
+  }
+
+  // تحميل الإحصائيات (إن كانت مُفعّلة)
+  loadSiteStatsPublic();
+
   // تحميل الإعلانات والأصناف
   await Products.initHomePage();
 })();
@@ -247,6 +258,56 @@ async function trackVisit() {
     });
   } catch (e) {
     // نتجاهل الخطأ - الزيارة لا تعطل الموقع
+  }
+}
+
+  /* ==========================================
+   عرض إحصائيات الموقع (إذا كانت مُفعّلة)
+   ========================================== */
+async function loadSiteStatsPublic() {
+  try {
+    const response = await fetch('/api/get-stats');
+    const data = await response.json();
+
+    // إذا الإحصائيات غير معروضة للزوار
+    if (!data.success || !data.showToPublic) {
+      document.getElementById('siteStatsSection').style.display = 'none';
+      return;
+    }
+
+    const stats = data.stats;
+
+    // عرض القسم
+    const section = document.getElementById('siteStatsSection');
+    const container = document.getElementById('siteStatsPublic');
+
+    container.innerHTML = `
+      <div class="public-stat-box">
+        <div class="public-stat-icon">👥</div>
+        <div class="public-stat-number">${stats.visitors.toLocaleString('en-US')}</div>
+        <div class="public-stat-label">زائر</div>
+      </div>
+      <div class="public-stat-box">
+        <div class="public-stat-icon">👤</div>
+        <div class="public-stat-number">${stats.users.toLocaleString('en-US')}</div>
+        <div class="public-stat-label">مستخدم</div>
+      </div>
+      <div class="public-stat-box">
+        <div class="public-stat-icon">📅</div>
+        <div class="public-stat-number">${stats.todayVisitors.toLocaleString('en-US')}</div>
+        <div class="public-stat-label">زائر اليوم</div>
+      </div>
+      <div class="public-stat-box">
+        <div class="public-stat-icon">📦</div>
+        <div class="public-stat-number">${stats.ads.toLocaleString('en-US')}</div>
+        <div class="public-stat-label">إعلان</div>
+      </div>
+    `;
+
+    section.style.display = 'block';
+  } catch (e) {
+    console.error('Load public stats error:', e);
+    document.getElementById('siteStatsSection').style.display = 'none';
   }
 }
 </script>
