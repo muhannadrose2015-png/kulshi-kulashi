@@ -85,47 +85,67 @@ const Auth = {
 
   /* إرسال بيانات التسجيل */
   submitRegistration(onComplete) {
-    const name = document.getElementById('regName').value.trim();
-    const phone = document.getElementById('regPhone').value.trim();
-    const city = document.getElementById('regCity').value.trim();
-    const errorEl = document.getElementById('regError');
+  const name = document.getElementById('regName').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const city = document.getElementById('regCity').value.trim();
+  const errorEl = document.getElementById('regError');
 
-    errorEl.textContent = '';
+  errorEl.textContent = '';
 
-    if (name.length < 2) {
-      errorEl.textContent = '❌ الاسم قصير جداً';
-      return;
-    }
+  if (name.length < 2) {
+    errorEl.textContent = '❌ الاسم قصير جداً';
+    return;
+  }
 
-    const cleanPhone = phone.replace(/[^0-9]/g, '');
-    if (cleanPhone.length < 10 || cleanPhone.length > 13) {
-      errorEl.textContent = '❌ رقم الهاتف غير صحيح';
-      return;
-    }
+  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  if (cleanPhone.length < 10 || cleanPhone.length > 13) {
+    errorEl.textContent = '❌ رقم الهاتف غير صحيح';
+    return;
+  }
 
-    if (window.Ban && Ban.isBanned(name, phone)) {
-      errorEl.textContent = '🚫 أنت محظور من استخدام الموقع';
-      setTimeout(() => {
-        window.location.href = '/banned.html';
-      }, 1500);
-      return;
-    }
+  if (window.Ban && Ban.isBanned(name, phone)) {
+    errorEl.textContent = '🚫 أنت محظور من استخدام الموقع';
+    setTimeout(() => {
+      window.location.href = '/banned.html';
+    }, 1500);
+    return;
+  }
 
-    const user = {
-      name: name,
-      phone: cleanPhone,
-      city: city || '',
-      joinedAt: new Date().toISOString()
-    };
+  const user = {
+    name: name,
+    phone: cleanPhone,
+    city: city || '',
+    joinedAt: new Date().toISOString()
+  };
 
-    if (KK.setUser(user)) {
-      document.getElementById('registerModal').remove();
-      App.toast('✅ تم التسجيل بنجاح', 'success');
-      if (typeof onComplete === 'function') onComplete(user);
-    } else {
-      errorEl.textContent = '❌ فشل الحفظ. تأكد من تفعيل التخزين في المتصفح';
-    }
-  },
+  if (KK.setUser(user)) {
+    document.getElementById('registerModal').remove();
+    App.toast('✅ تم التسجيل بنجاح', 'success');
+
+    // ===== تسجيل المستخدم في السيرفر (للإحصائيات) =====
+    this.registerOnServer(cleanPhone, name, city);
+
+    if (typeof onComplete === 'function') onComplete(user);
+  } else {
+    errorEl.textContent = '❌ فشل الحفظ. تأكد من تفعيل التخزين في المتصفح';
+  }
+},
+
+/* تسجيل المستخدم في السيرفر */
+async registerOnServer(phone, name, city) {
+  try {
+    const response = await fetch('/api/register-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, name, city })
+    });
+    const data = await response.json();
+    console.log('User registered:', data);
+  } catch (e) {
+    console.error('Register on server failed:', e);
+    // لا نوقف التسجيل إذا فشل السيرفر
+  }
+},
 
   /* ===== عرض اسم المستخدم في الهيدر ===== */
   renderUserHeader() {
