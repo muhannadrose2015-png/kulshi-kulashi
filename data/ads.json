@@ -576,5 +576,29 @@
     "createdAt": "2026-10-14T13:00:22.388Z",
     "publishedAt": "2026-10-14T13:00:22.388Z",
     "autoPublished": true
+  },
+  {
+    "id": "ad_1791983109350_328",
+    "orderCode": "KK-2026-2428",
+    "title": "بلي 4 مهكر سلم",
+    "category": "electronics",
+    "price": 300000,
+    "currency": "IQD",
+    "description": "بلي 4 سلم مهكر \n5 العاب مميزة \nكامل ملحقاته كما موضح \nللبيع سعر 250",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791981684602_1848.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791981686827_7846.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1791981688718_4739.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07856761412",
+    "ownerName": "السوق السوداء",
+    "ownerPhone": "07856761412",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-10-14T13:05:09.350Z",
+    "publishedAt": "2026-10-14T13:05:09.350Z",
+    "autoPublished": true
   }
 ]
