@@ -688,5 +688,27 @@
     "createdAt": "2026-10-16T19:35:09.073Z",
     "publishedAt": "2026-10-16T19:35:09.073Z",
     "autoPublished": true
+  },
+  {
+    "id": "ad_1792179612955_969",
+    "orderCode": "KK-2026-4195",
+    "title": "ACER NITRO 5",
+    "category": "electronics",
+    "price": 650000,
+    "currency": "IQD",
+    "description": "INTEL CORE I5 11TH\nRAM 16GB DDR4\n512GB SSD NVME\nRTX 3050\nDISPLAY 17 INCH 144HZ",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1792178410305_5916.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07856761412",
+    "ownerName": "السوق السوداء",
+    "ownerPhone": "07856761412",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-10-16T19:40:12.955Z",
+    "publishedAt": "2026-10-16T19:40:12.955Z",
+    "autoPublished": true
   }
 ]
