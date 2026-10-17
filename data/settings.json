@@ -2,12 +2,12 @@
   "_دليل": "🔴 غيّر الأرقام فقط - اضغط Commit changes عند الانتهاء",
   
   "_الإعلانات": "===== عمر الإعلانات (بالأيام) =====",
-  "adLifespan": 20,
-  "featuredLifespan": 30,
-  "soldLifespan": 7,
+  "adLifespan": 60,
+  "featuredLifespan": 90,
+  "soldLifespan": 14,
   
   "_التذكير": "===== تذكير 'هل تم البيع؟' =====",
-  "reminderStartDay": 10,
+  "reminderStartDay": 55,
   "reminderIntervalHours": 4,
   "reminderSameAdDays": 14,
   
