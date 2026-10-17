@@ -1949,3 +1949,16 @@ body {
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* ==========================================
+   قسم الإعلانات المقترحة
+   ========================================== */
+#suggestedSection .section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#suggestedSection .section-title button:active {
+  background: #e0e2e5 !important;
+}
