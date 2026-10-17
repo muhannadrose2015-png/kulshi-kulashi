@@ -44,14 +44,27 @@
     <!-- تُعرض عبر JS -->
   </div>
 
-  <!-- أحدث الإعلانات -->
-  <h2 class="section-title">🔥 أحدث الإعلانات</h2>
-  <div class="products-grid" id="latestProducts">
-    <div class="loading" style="grid-column: 1/-1;">
-      <div class="spinner"></div>
-      <p style="margin-top:10px;">جارٍ التحميل...</p>
-    </div>
+<!-- أحدث الإعلانات -->
+<h2 class="section-title">🔥 أحدث الإعلانات</h2>
+<div class="products-grid" id="latestProducts">
+  <div class="loading" style="grid-column: 1/-1;">
+    <div class="spinner"></div>
+    <p style="margin-top:10px;">جارٍ التحميل...</p>
   </div>
+</div>
+
+<!-- إعلانات مقترحة (تتغير في كل زيارة) -->
+<div id="suggestedSection" style="display:none;">
+  <h2 class="section-title">
+    ✨ قد يعجبك أيضاً
+    <button onclick="refreshSuggested()" style="margin-right:auto; background:#f0f2f5; border:none; padding:6px 12px; border-radius:8px; font-family:inherit; font-size:12px; font-weight:bold; color:#232f3e; cursor:pointer;">
+      🔄 تحديث
+    </button>
+  </h2>
+  <div class="products-grid" id="suggestedProducts"></div>
+</div>
+
+<!-- زر عرض كل الإعلانات -->
 <div style="text-align:center; margin-top:20px;" id="viewAllBtn">
   <a href="/all.html" class="btn btn-primary" style="padding:14px 40px; font-size:15px;">
     📋 عرض كل الإعلانات
@@ -139,6 +152,8 @@
 
   // تحميل الإعلانات والأصناف
   await Products.initHomePage();
+  // تحميل الإعلانات المقترحة
+await loadSuggestedProducts();
 })();
 
 /* ===== البحث ===== */
@@ -309,6 +324,70 @@ async function loadSiteStatsPublic() {
     console.error('Load public stats error:', e);
     document.getElementById('siteStatsSection').style.display = 'none';
   }
+}
+
+  /* ==========================================
+   الإعلانات المقترحة (عشوائية في كل زيارة)
+   ========================================== */
+async function loadSuggestedProducts() {
+  try {
+    const allAds = await Products.loadAll();
+
+    // إذا كان هناك أقل من 10 إعلانات → لا نعرض القسم
+    if (allAds.length < 10) {
+      document.getElementById('suggestedSection').style.display = 'none';
+      return;
+    }
+
+    // استبعاد الإعلانات المعروضة في "أحدث الإعلانات"
+    const latestIds = [...document.querySelectorAll('#latestProducts .product-card')]
+      .map(card => {
+        const href = card.getAttribute('href') || '';
+        const match = href.match(/id=([^&]+)/);
+        return match ? match[1] : null;
+      })
+      .filter(Boolean);
+
+    const remaining = allAds.filter(ad => !latestIds.includes(String(ad.id)));
+
+    // إذا كان الباقي أقل من 4 → لا نعرض
+    if (remaining.length < 4) {
+      document.getElementById('suggestedSection').style.display = 'none';
+      return;
+    }
+
+    // خلط عشوائي
+    const shuffled = [...remaining].sort(() => Math.random() - 0.5);
+    const suggested = shuffled.slice(0, 8);
+
+    // عرض
+    const views = await Products.loadViews();
+    const container = document.getElementById('suggestedProducts');
+    container.innerHTML = suggested
+      .map(p => App.productCardHTML(p, views[p.id] || 0))
+      .join('');
+
+    // إظهار القسم
+    document.getElementById('suggestedSection').style.display = 'block';
+
+  } catch (e) {
+    console.error('Suggested products error:', e);
+    document.getElementById('suggestedSection').style.display = 'none';
+  }
+}
+
+/* تحديث الإعلانات المقترحة */
+async function refreshSuggested() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳';
+
+  await loadSuggestedProducts();
+
+  btn.disabled = false;
+  btn.innerHTML = '🔄 تحديث';
+
+  App.toast('✅ تم تحديث الاقتراحات', 'success');
 }
 </script>
 </body>
