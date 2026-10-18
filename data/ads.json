@@ -780,5 +780,29 @@
     "createdAt": "2026-10-17T21:25:08.047Z",
     "publishedAt": "2026-10-17T21:25:08.047Z",
     "autoPublished": true
+  },
+  {
+    "id": "ad_1792308308151_19",
+    "orderCode": "KK-2026-9060",
+    "title": "شهاب سنگ",
+    "category": "electronics",
+    "price": 150000,
+    "currency": "USD",
+    "description": "انواع شهاب سنگ",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1792306993217_2566.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1792306994899_8087.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1792306996852_3181.jpg"
+    ],
+    "city": "ایران",
+    "whatsapp": "09013239336",
+    "ownerName": "مجید ثابت",
+    "ownerPhone": "09013239336",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-10-18T07:25:08.151Z",
+    "publishedAt": "2026-10-18T07:25:08.151Z",
+    "autoPublished": true
   }
 ]
