@@ -213,6 +213,71 @@
   .step.active .step-label {
     color: var(--accent);
   }
+
+  /* ===== كتلة الرفض ===== */
+  .rejected-block {
+    background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+    border: 2px solid #d32f2f;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 15px 0;
+    text-align: center;
+  }
+
+  .rejected-icon {
+    font-size: 50px;
+    margin-bottom: 10px;
+    animation: pulse-x 2s infinite;
+  }
+
+  @keyframes pulse-x {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+
+  .rejected-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #c62828;
+    margin-bottom: 15px;
+  }
+
+  .rejected-reason {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    text-align: right;
+    font-size: 14px;
+    color: #c62828;
+    border-right: 4px solid #d32f2f;
+  }
+
+  .rejected-reason strong {
+    display: block;
+    margin-bottom: 5px;
+  }
+
+  .rejected-hint {
+    font-size: 12px;
+    color: #c62828;
+    line-height: 1.6;
+    opacity: 0.9;
+  }
+
+  .rejected-step .step-circle {
+    background: #d32f2f !important;
+    color: white !important;
+    box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.2) !important;
+  }
+
+  .rejected-step .step-label {
+    color: #d32f2f !important;
+  }
+
+  .result-status.rejected {
+    color: #c62828;
+  }
 </style>
 </head>
 <body>
@@ -280,6 +345,11 @@
     <span class="nav-icon">➕</span>
     <span>إضافة</span>
   </a>
+  <a href="/favorites.html" class="nav-item">
+    <span class="nav-icon">❤️</span>
+    <span>المفضلة</span>
+    <span class="fav-badge" id="favBadge" style="display:none;">0</span>
+  </a>
   <a href="/my-ads.html" class="nav-item">
     <span class="nav-icon">📋</span>
     <span>إعلاناتي</span>
@@ -292,12 +362,18 @@
 <script src="/js/ban.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/products.js"></script>
+<script src="/js/favorites.js"></script>
 
 <script>
 /* ===== تشغيل الصفحة ===== */
 (async function init() {
   await Ban.checkPageAccess();
   Auth.renderUserHeader();
+
+  // تحديث عدّاد المفضلة
+  if (typeof Favorites !== 'undefined') {
+    Favorites.updateBadge();
+  }
 
   // إذا كان هناك code في الرابط، ابحث تلقائياً
   const code = App.getURLParam('code');
@@ -326,6 +402,31 @@ async function trackOrder() {
   // البحث في الطلبات المحلية
   const orders = KK.getMyOrders();
   let order = orders.find(o => o.code.toUpperCase() === input);
+
+  // ===== فحص إذا كان الطلب معلقاً ومرفوضاً =====
+  if (order && order.status === 'pending') {
+    try {
+      const rejResponse = await fetch('/api/check-rejected', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderCodes: [order.code] })
+      });
+      const rejData = await rejResponse.json();
+
+      if (rejData.success && rejData.rejected && rejData.rejected.length > 0) {
+        const rejected = rejData.rejected[0];
+        order.status = 'rejected';
+        order.rejectedAt = rejected.rejectedAt;
+        order.rejectReason = rejected.reason;
+
+        // تحديث LocalStorage
+        const updated = orders.map(o => o.code === order.code ? order : o);
+        localStorage.setItem(KK.KEYS.MY_ORDERS, JSON.stringify(updated));
+      }
+    } catch (e) {
+      console.error('Check rejected error:', e);
+    }
+  }
 
   // إذا لم يوجد محلياً، ابحث في ads.json
   if (!order) {
@@ -378,7 +479,37 @@ function renderOrderDetails(order) {
   const price = App.formatPrice(order.price, order.currency);
 
   // حساب مرحلة الحالة
-  const stepIndex = order.status === 'pending' ? 2 : order.status === 'approved' ? 3 : 2;
+  const stepIndex = order.status === 'approved' ? 3 : 2;
+
+  // ===== كتلة الرفض =====
+  const rejectedBlock = order.status === 'rejected' ? `
+    <div class="rejected-block">
+      <div class="rejected-icon">❌</div>
+      <div class="rejected-title">تم رفض إعلانك</div>
+      ${order.rejectReason ? `
+        <div class="rejected-reason">
+          <strong>📋 السبب:</strong>
+          <div>${App.escapeHTML(order.rejectReason)}</div>
+        </div>
+      ` : ''}
+      <div class="rejected-hint">
+        💡 يمكنك مراجعة السبب، تصحيح الإعلان، ثم إعادة نشره من صفحة "إضافة"
+      </div>
+    </div>
+  ` : '';
+
+  // ===== زر/my-ads =====
+  const actionBlock = order.status === 'approved' ? `
+    <a href="/my-ads.html" class="btn btn-primary btn-full" style="margin-top:15px;">📋 عرض في إعلاناتي</a>
+  ` : order.status === 'rejected' ? `
+    <a href="/add.html" class="btn btn-primary btn-full" style="margin-top:15px;">➕ إعادة نشر الإعلان</a>
+  ` : `
+    <div style="text-align:center; padding:15px; background:#fff9f0; border-radius:8px; margin-top:15px;">
+      <p style="font-size:13px; color:#856404;">
+        ⏳ سيتم مراجعة إعلانك من قبل الإدارة ونشره قريباً
+      </p>
+    </div>
+  `;
 
   resultEl.innerHTML = `
     <div class="result-header">
@@ -387,15 +518,17 @@ function renderOrderDetails(order) {
       <div class="result-code">${order.code}</div>
     </div>
 
+    ${rejectedBlock}
+
     <!-- خطوات الحالة -->
     <div class="status-steps">
       <div class="step done">
         <div class="step-circle">✓</div>
         <div class="step-label">تم الإرسال</div>
       </div>
-      <div class="step ${stepIndex === 2 ? 'active' : stepIndex > 2 ? 'done' : ''}">
-        <div class="step-circle">${stepIndex > 2 ? '✓' : '2'}</div>
-        <div class="step-label">قيد المراجعة</div>
+      <div class="step ${order.status === 'rejected' ? 'rejected-step' : (stepIndex === 2 ? 'active' : 'done')}">
+        <div class="step-circle">${order.status === 'rejected' ? '✕' : (stepIndex > 2 ? '✓' : '2')}</div>
+        <div class="step-label">${order.status === 'rejected' ? 'مرفوض' : 'قيد المراجعة'}</div>
       </div>
       <div class="step ${stepIndex === 3 ? 'active' : ''}">
         <div class="step-circle">${stepIndex === 3 ? '✓' : '3'}</div>
@@ -429,15 +562,7 @@ function renderOrderDetails(order) {
       ` : ''}
     </div>
 
-    ${order.status === 'approved' ? `
-      <a href="/my-ads.html" class="btn btn-primary btn-full" style="margin-top:15px;">📋 عرض في إعلاناتي</a>
-    ` : `
-      <div style="text-align:center; padding:15px; background:#fff9f0; border-radius:8px; margin-top:15px;">
-        <p style="font-size:13px; color:#856404;">
-          ⏳ سيتم مراجعة إعلانك من قبل الإدارة ونشره قريباً
-        </p>
-      </div>
-    `}
+    ${actionBlock}
   `;
 }
 
