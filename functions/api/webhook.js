@@ -23,15 +23,29 @@ export async function onRequest(context) {
     const messageId = cq.message.message_id;
     const chatId = cq.message.chat.id;
 
-    // ===== قبول/رفض إعلان جديد =====
-    if (data.startsWith('approve_') && !data.includes('promote_') && !data.includes('subscribe_')) {
-      const orderCode = data.replace('approve_', '');
-      await handleApprove(orderCode, callbackId, messageId, chatId, env);
-    }
-    else if (data.startsWith('reject_') && !data.includes('promote_') && !data.includes('subscribe_')) {
-      const orderCode = data.replace('reject_', '');
-      await handleReject(orderCode, callbackId, messageId, chatId, env);
-    }
+// ===== قبول إعلان جديد =====
+if (data.startsWith('approve_') && !data.includes('promote_') && !data.includes('subscribe_')) {
+  const orderCode = data.replace('approve_', '');
+  await handleApprove(orderCode, callbackId, messageId, chatId, env);
+}
+// ===== قائمة أسباب الرفض =====
+else if (data.startsWith('reject_menu_')) {
+  const orderCode = data.replace('reject_menu_', '');
+  await handleRejectMenu(orderCode, callbackId, messageId, chatId, env);
+}
+// ===== رفض مع سبب =====
+else if (data.startsWith('reject_with_')) {
+  // الصيغة: reject_with_{reason_key}_{orderCode}
+  const parts = data.replace('reject_with_', '').split('_');
+  const reasonKey = parts[0];
+  const orderCode = parts.slice(1).join('_');
+  await handleRejectWithReason(orderCode, reasonKey, callbackId, messageId, chatId, env);
+}
+// ===== رفض قديم (توافق مع القديم) =====
+else if (data.startsWith('reject_') && !data.includes('promote_') && !data.includes('subscribe_') && !data.includes('reject_with_') && !data.includes('reject_menu_')) {
+  const orderCode = data.replace('reject_', '');
+  await handleReject(orderCode, callbackId, messageId, chatId, env);
+}
     // ===== حذف إعلان من إبلاغ =====
     else if (data.startsWith('delete_ad_')) {
       const productId = data.replace('delete_ad_', '');
@@ -101,27 +115,93 @@ async function handleApprove(orderCode, callbackId, messageId, chatId, env) {
 }
 
 /* ===== رفض إعلان ===== */
-/* ===== رفض إعلان + حذف صوره ===== */
-async function handleReject(orderCode, callbackId, messageId, chatId, env) {
+/* ===== قائمة أسباب الرفض ===== */
+async function handleRejectMenu(orderCode, callbackId, messageId, chatId, env) {
+  try {
+    const reasons = {
+      'content': '🚫 محتوى مخالف',
+      'images': '📷 صور غير واضحة',
+      'price': '💰 سعر غير منطقي',
+      'duplicate': '📋 إعلان مكرر',
+      'info': '📝 معلومات ناقصة',
+      'category': '🏷️ صنف خاطئ',
+      'other': '📌 سبب آخر'
+    };
+
+    const keyboard = [];
+    const keys = Object.keys(reasons);
+
+    // ترتيب في صفوف من 2
+    for (let i = 0; i < keys.length; i += 2) {
+      const row = [];
+      row.push({
+        text: reasons[keys[i]],
+        callback_data: `reject_with_${keys[i]}_${orderCode}`
+      });
+      if (keys[i + 1]) {
+        row.push({
+          text: reasons[keys[i + 1]],
+          callback_data: `reject_with_${keys[i + 1]}_${orderCode}`
+        });
+      }
+      keyboard.push(row);
+    }
+
+    // زر إلغاء
+    keyboard.push([
+      { text: '↩️ إلغاء', callback_data: `approve_${orderCode}` }
+    ]);
+
+    await editMessage(env, chatId, messageId,
+      `❌ <b>رفض الإعلان</b>\n\n` +
+      `📦 <b>${escapeHTML(orderCode)}</b>\n\n` +
+      `اختر سبب الرفض:`,
+      { inline_keyboard: keyboard }
+    );
+
+    await answerCallback(env, callbackId, '📋 اختر السبب');
+
+  } catch (e) {
+    console.error('Reject menu error:', e);
+    await answerCallback(env, callbackId, '❌ فشل');
+  }
+}
+
+/* ===== رفض مع سبب + حذف الصور ===== */
+async function handleRejectWithReason(orderCode, reasonKey, callbackId, messageId, chatId, env) {
   try {
     if (!env.VIEWS_KV) {
       await answerCallback(env, callbackId, '❌ KV غير مربوط');
       return;
     }
 
-    // ===== 1. قراءة الإعلان من KV =====
+    // أسباب الرفض
+    const reasonTexts = {
+      'content': 'محتوى مخالف للقوانين',
+      'images': 'صور غير واضحة أو غير حقيقية',
+      'price': 'سعر غير منطقي أو مضلل',
+      'duplicate': 'إعلان مكرر',
+      'info': 'معلومات ناقصة أو غير دقيقة',
+      'category': 'الصنف المختار غير مناسب',
+      'other': 'سبب آخر (راجع الإدارة)'
+    };
+
+    const reasonText = reasonTexts[reasonKey] || 'سبب غير محدد';
+
+    // ===== 1. قراءة الإعلان =====
     const key = `pending_ad:${orderCode}`;
     const adRaw = await env.VIEWS_KV.get(key);
 
     if (!adRaw) {
-      await editMessage(env, chatId, messageId, '⚠️ الإعلان غير موجود (ربما حُذف)', null);
+      await editMessage(env, chatId, messageId,
+        `⚠️ الإعلان غير موجود (ربما حُذف)`, null);
       await answerCallback(env, callbackId, '⚠️ غير موجود');
       return;
     }
 
     const adData = JSON.parse(adRaw);
 
-    // ===== 2. حذف صور الإعلان =====
+    // ===== 2. حذف الصور =====
     const images = adData.images || [];
     let imagesDeleted = 0;
 
@@ -132,7 +212,6 @@ async function handleReject(orderCode, callbackId, messageId, chatId, env) {
 
         const filePath = match[1];
 
-        // الحصول على SHA
         const getFile = await fetch(
           `https://api.github.com/repos/${env.GITHUB_REPO}/contents/${filePath}`,
           {
@@ -145,10 +224,8 @@ async function handleReject(orderCode, callbackId, messageId, chatId, env) {
         );
 
         if (!getFile.ok) continue;
-
         const fileInfo = await getFile.json();
 
-        // حذف الملف
         const deleteRes = await fetch(
           `https://api.github.com/repos/${env.GITHUB_REPO}/contents/${filePath}`,
           {
@@ -169,20 +246,21 @@ async function handleReject(orderCode, callbackId, messageId, chatId, env) {
 
         if (deleteRes.ok) imagesDeleted++;
       } catch (imgErr) {
-        console.error('Image delete error:', imageUrl, imgErr);
+        console.error('Image delete error:', imgErr);
       }
     }
 
     // ===== 3. حذف الإعلان من KV =====
     await env.VIEWS_KV.delete(key);
 
-    // ===== 4. حفظ علامة الرفض في KV (للمستخدم) =====
+    // ===== 4. حفظ علامة الرفض مع السبب =====
     const rejectedKey = `rejected_ad:${orderCode}`;
     await env.VIEWS_KV.put(rejectedKey, JSON.stringify({
       orderCode: orderCode,
       title: adData.title,
       rejectedAt: new Date().toISOString(),
-      reason: 'رفض من الإدارة'
+      reason: reasonText,
+      reasonKey: reasonKey
     }), {
       expirationTtl: 60 * 60 * 24 * 30 // 30 يوم
     });
@@ -190,16 +268,23 @@ async function handleReject(orderCode, callbackId, messageId, chatId, env) {
     // ===== 5. تعديل الرسالة =====
     const msg = `❌ <b>تم رفض الإعلان</b>\n\n` +
       `📦 ${escapeHTML(adData.title)}\n` +
-      `🖼️ تم حذف ${imagesDeleted}/${images.length} صورة\n` +
-      `📝 تم إعلام المستخدم بالرفض`;
+      `📋 <b>السبب:</b> ${reasonText}\n` +
+      `🖼️ تم حذف ${imagesDeleted}/${images.length} صورة\n\n` +
+      `✅ المستخدم سيرى السبب عند فتح "إعلاناتي"`;
 
     await editMessage(env, chatId, messageId, msg, null);
-    await answerCallback(env, callbackId, `❌ تم الرفض (${imagesDeleted} صورة)`);
+    await answerCallback(env, callbackId, `❌ رُفض: ${reasonText}`);
 
   } catch (e) {
-    console.error('Reject error:', e);
+    console.error('Reject with reason error:', e);
     await answerCallback(env, callbackId, '❌ فشل: ' + e.message);
   }
+}
+
+/* ===== رفض قديم (توافق مع الأزرار القديمة) ===== */
+async function handleReject(orderCode, callbackId, messageId, chatId, env) {
+  // استدعاء الرفض بدون سبب
+  await handleRejectWithReason(orderCode, 'other', callbackId, messageId, chatId, env);
 }
 
 /* ===== ترقية إعلان ===== */
