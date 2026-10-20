@@ -942,5 +942,28 @@
     "createdAt": "2026-10-20T16:10:12.580Z",
     "publishedAt": "2026-10-20T16:10:12.580Z",
     "autoPublished": true
+  },
+  {
+    "id": "ad_1792514109163_0",
+    "orderCode": "KK-2026-4929",
+    "title": "جهاز Z فولد 4 ذاكره 256",
+    "category": "electronics",
+    "price": 450000,
+    "currency": "IQD",
+    "description": "السلام عليكم جهاز Z فولد 4 ذاكره 256\nالجهاز مستعمل وبحالة جيدة .. الفحص عند الاستلام .",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1792512705862_5894.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1792512708544_4460.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07873444857",
+    "ownerName": "السوق السوداء",
+    "ownerPhone": "07856761412",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-10-20T16:35:09.163Z",
+    "publishedAt": "2026-10-20T16:35:09.163Z",
+    "autoPublished": true
   }
 ]
