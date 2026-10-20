@@ -106,13 +106,13 @@ export async function onRequest(context) {
       message = formatNewAd(data);
 
       replyMarkup = {
-        inline_keyboard: [
-          [
-            { text: '✅ موافقة ونشر', callback_data: `approve_${data.orderCode}` },
-            { text: '❌ رفض', callback_data: `reject_${data.orderCode}` }
-          ]
-        ]
-      };
+  inline_keyboard: [
+    [
+      { text: '✅ موافقة ونشر', callback_data: `approve_${data.orderCode}` },
+      { text: '❌ رفض', callback_data: `reject_menu_${data.orderCode}` }
+    ]
+  ]
+};
     }
     /* ===== إبلاغ عن إعلان ===== */
     else if (action === 'report') {
