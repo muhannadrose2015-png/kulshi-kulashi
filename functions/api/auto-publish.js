@@ -2,6 +2,7 @@
    Cloudflare Function - النشر التلقائي
    المسار: /api/auto-publish?secret=XXX
    يعمل عبر Cron Job كل 5 دقائق
+   يُنشر رسالة منفصلة لكل إعلان مع زر حذف
    ========================================== */
 
 export async function onRequest(context) {
@@ -41,7 +42,7 @@ export async function onRequest(context) {
       });
     }
 
-    // ===== 1. جلب كل الإعلانات المعلقة =====
+    // ===== 1. جلب الإعلانات المعلقة =====
     const listResult = await env.VIEWS_KV.list({ prefix: 'pending_ad:' });
 
     if (listResult.keys.length === 0) {
@@ -66,10 +67,27 @@ export async function onRequest(context) {
 
       try {
         const adData = JSON.parse(raw);
-        if (!adData.expiresAt) continue;
+        let isReady = false;
 
-        const expiresAt = new Date(adData.expiresAt);
-        if (expiresAt <= now) {
+        // الحالة 1: يوجد expiresAt
+        if (adData.expiresAt) {
+          const expiresAt = new Date(adData.expiresAt);
+          if (!isNaN(expiresAt.getTime()) && expiresAt <= now) {
+            isReady = true;
+          }
+        }
+        // الحالة 2: إعلانات قديمة (بدون expiresAt)
+        else if (adData.createdAt) {
+          const createdAt = new Date(adData.createdAt);
+          if (!isNaN(createdAt.getTime())) {
+            const minutesPassed = (now - createdAt) / (1000 * 60);
+            if (minutesPassed >= 60) {
+              isReady = true;
+            }
+          }
+        }
+
+        if (isReady) {
           readyToPublish.push({
             key: key.name,
             data: adData
@@ -112,8 +130,8 @@ export async function onRequest(context) {
       decodeURIComponent(escape(atob(fileData.content.replace(/\n/g, ''))))
     );
 
-    // ===== 4. إضافة الإعلانات الجاهزة =====
-    const publishedCodes = [];
+    // ===== 4. إضافة الإعلانات الجديدة =====
+    const publishedAds = [];
 
     for (const item of readyToPublish) {
       const adData = item.data;
@@ -121,13 +139,12 @@ export async function onRequest(context) {
       // فحص عدم التكرار
       const exists = ads.find(ad => ad.orderCode === adData.orderCode);
       if (exists) {
-        // موجود مسبقاً → احذفه من KV
         await env.VIEWS_KV.delete(item.key);
         continue;
       }
 
       // إضافة الإعلان
-      ads.push({
+      const newAd = {
         id: `ad_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         orderCode: adData.orderCode,
         title: adData.title,
@@ -146,16 +163,17 @@ export async function onRequest(context) {
         createdAt: new Date().toISOString(),
         publishedAt: new Date().toISOString(),
         autoPublished: true
-      });
+      };
 
-      publishedCodes.push(adData.orderCode);
+      ads.push(newAd);
+      publishedAds.push(newAd);
 
       // حذف من KV
       await env.VIEWS_KV.delete(item.key);
     }
 
     // ===== 5. كتابة ads.json =====
-    if (publishedCodes.length > 0) {
+    if (publishedAds.length > 0) {
       const newContent = JSON.stringify(ads, null, 2);
       const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
 
@@ -168,7 +186,7 @@ export async function onRequest(context) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          message: `Auto-publish ${publishedCodes.length} ad(s)`,
+          message: `Auto-publish ${publishedAds.length} ad(s)`,
           content: encodedContent,
           sha: currentSha,
           branch: 'main'
@@ -180,36 +198,53 @@ export async function onRequest(context) {
         throw new Error(errData.message || 'فشل النشر');
       }
 
-      // إشعار في تليجرام
+      // ===== 6. إرسال رسالة منفصلة لكل إعلان =====
       if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
-        try {
-          const msg = `<b>⚡ نشر تلقائي</b>\n` +
-            `━━━━━━━━━━━━━━━━━━━━\n\n` +
-            `تم نشر <b>${publishedCodes.length}</b> إعلان تلقائياً:\n\n` +
-            publishedCodes.map(c => `• <code>${c}</code>`).join('\n') +
-            `\n\n⏰ ${new Date().toLocaleString('ar-IQ')}`;
+        for (const publishedAd of publishedAds) {
+          try {
+            const adMsg = `<b>⚡ نشر تلقائي</b>\n` +
+              `━━━━━━━━━━━━━━━━━━━━\n\n` +
+              `<b>📦 العنوان:</b>\n${escapeHTML(publishedAd.title || '')}\n\n` +
+              `<b>🆔 الكود:</b> <code>${publishedAd.orderCode}</code>\n` +
+              `<b>👤 البائع:</b> ${escapeHTML(publishedAd.ownerName || '')}\n` +
+              `<b>📱 الهاتف:</b> ${escapeHTML(publishedAd.ownerPhone || '')}\n` +
+              `<b>💰 السعر:</b> ${formatPrice(publishedAd.price, publishedAd.currency)}\n` +
+              `<b>📍 المدينة:</b> ${escapeHTML(publishedAd.city || '')}\n\n` +
+              `━━━━━━━━━━━━━━━━━━━━\n` +
+              `⏰ ${new Date().toLocaleString('ar-IQ')}\n\n` +
+              `<b>إذا كان الإعلان مخالفاً، احذفه بالزر أدناه</b>`;
 
-          await fetch(
-            `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: env.TELEGRAM_CHAT_ID,
-                text: msg,
-                parse_mode: 'HTML'
-              })
-            }
-          );
-        } catch (e) {}
+            await fetch(
+              `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  chat_id: env.TELEGRAM_CHAT_ID,
+                  text: adMsg,
+                  parse_mode: 'HTML',
+                  reply_markup: {
+                    inline_keyboard: [
+                      [
+                        { text: '🗑️ حذف الإعلان', callback_data: `delete_ad_${publishedAd.orderCode}` }
+                      ]
+                    ]
+                  }
+                })
+              }
+            );
+          } catch (e) {
+            console.error('Telegram notify error:', e);
+          }
+        }
       }
     }
 
     return new Response(JSON.stringify({
       success: true,
-      published: publishedCodes.length,
+      published: publishedAds.length,
       checked: listResult.keys.length,
-      codes: publishedCodes,
+      codes: publishedAds.map(a => a.orderCode),
       timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -225,4 +260,28 @@ export async function onRequest(context) {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
+}
+
+/* ===== حماية HTML ===== */
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/* ===== تنسيق السعر ===== */
+function formatPrice(price, currency) {
+  if (!price && price !== 0) return 'غير محدد';
+  const num = Number(price);
+  if (isNaN(num)) return price;
+  const formatted = num.toLocaleString('en-US');
+  const currencies = {
+    'IQD': 'د.ع',
+    'USD': '$',
+    'SAR': 'ر.س',
+    'AED': 'د.إ'
+  };
+  return `${formatted} ${currencies[currency] || currency || 'د.ع'}`;
 }
