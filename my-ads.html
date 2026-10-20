@@ -483,6 +483,7 @@
 
     // عرض الإعلانات
     await renderMyAds();
+    await checkRejectedAds();
   } catch (e) {
     console.error('Init error:', e);
     const container = document.getElementById('ordersList');
@@ -563,6 +564,15 @@ async function renderMyAds() {
           <div class="order-status ${statusInfo.class}">
             ${statusInfo.icon} ${statusInfo.text}
           </div>
+          <div class="order-status ${statusInfo.class}">
+  ${statusInfo.icon} ${statusInfo.text}
+</div>
+${order.status === 'rejected' ? `
+  <div class="rejected-notice">
+    ⚠️ تم رفض إعلانك من الإدارة
+    ${order.rejectReason ? `<br><small>السبب: ${App.escapeHTML(order.rejectReason)}</small>` : ''}
+  </div>
+` : ''}
           <div class="order-actions">
             <button class="btn-view" onclick="viewOrder('${order.code}')">👁️ عرض</button>
             <button class="btn-track" onclick="trackOrder('${order.code}')">🔍 تتبع</button>
@@ -832,6 +842,52 @@ function doSearch() {
     return;
   }
   window.location.href = '/category.html?q=' + encodeURIComponent(query);
+}
+
+  /* ==========================================
+   فحص الإعلانات المرفوضة
+   ========================================== */
+async function checkRejectedAds() {
+  try {
+    const orders = KK.getMyOrders();
+    const pending = orders.filter(o => o.status === 'pending');
+
+    if (pending.length === 0) return;
+
+    const codes = pending.map(o => o.code);
+
+    const response = await fetch('/api/check-rejected', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderCodes: codes })
+    });
+
+    const data = await response.json();
+
+    if (!data.success || !data.rejected || data.rejected.length === 0) return;
+
+    // تحديث الإعلانات المرفوضة محلياً
+    let changed = false;
+
+    for (const rejected of data.rejected) {
+      const order = orders.find(o => o.code === rejected.orderCode);
+      if (order && order.status === 'pending') {
+        order.status = 'rejected';
+        order.rejectedAt = rejected.rejectedAt;
+        order.rejectReason = rejected.reason;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      localStorage.setItem(KK.KEYS.MY_ORDERS, JSON.stringify(orders));
+      // إعادة عرض الإعلانات
+      await renderMyAds();
+    }
+
+  } catch (e) {
+    console.error('Check rejected error:', e);
+  }
 }
 </script>
 
