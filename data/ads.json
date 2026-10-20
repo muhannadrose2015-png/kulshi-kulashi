@@ -919,5 +919,28 @@
     "createdAt": "2026-10-20T11:10:13.188Z",
     "publishedAt": "2026-10-20T11:10:13.188Z",
     "autoPublished": true
+  },
+  {
+    "id": "ad_1792512612580_178",
+    "orderCode": "KK-2026-3324",
+    "title": "جهاز سيكا بلي مبرمج 🔥🔥",
+    "category": "electronics",
+    "price": 25000,
+    "currency": "IQD",
+    "description": "جهاز سيكا بلي مبرمج بي العاب يحتوي علئ 20 لعبة صناعة الماني",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1792511219111_5500.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1792511223165_4734.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07873444857",
+    "ownerName": "السوق السوداء",
+    "ownerPhone": "07856761412",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-10-20T16:10:12.580Z",
+    "publishedAt": "2026-10-20T16:10:12.580Z",
+    "autoPublished": true
   }
 ]
