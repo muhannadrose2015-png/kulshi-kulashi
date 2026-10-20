@@ -569,8 +569,9 @@ async function renderMyAds() {
 </div>
 ${order.status === 'rejected' ? `
   <div class="rejected-notice">
-    ⚠️ تم رفض إعلانك من الإدارة
-    ${order.rejectReason ? `<br><small>السبب: ${App.escapeHTML(order.rejectReason)}</small>` : ''}
+    ⚠️ <strong>تم رفض إعلانك</strong>
+    ${order.rejectReason ? `<br>📋 <strong>السبب:</strong> ${App.escapeHTML(order.rejectReason)}` : ''}
+    <br><small style="opacity:0.8;">يمكنك مراجعة السبب وتصحيح الإعلان ثم إعادة نشره</small>
   </div>
 ` : ''}
           <div class="order-actions">
