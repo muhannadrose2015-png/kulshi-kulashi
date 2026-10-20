@@ -1,7 +1,6 @@
 /* ==========================================
-   Cloudflare Function - إرسال الإعلان إلى تليجرام
+   Cloudflare Function - إرسال/حذف الإعلانات
    المسار: /api/submit
-   يخزّن الإعلانات المعلّقة في KV لأجل الموافقة أو النشر التلقائي
    ========================================== */
 
 export async function onRequest(context) {
@@ -46,10 +45,8 @@ export async function onRequest(context) {
 
     /* ===== إعلان جديد ===== */
     if (action === 'new_ad') {
-      // تخزين الإعلان في KV (للموافقة أو النشر التلقائي)
       if (env.VIEWS_KV) {
         try {
-          // ===== قراءة الإعدادات =====
           let normalWait = 20;
           let featuredWait = 5;
 
@@ -75,7 +72,6 @@ export async function onRequest(context) {
             console.error('Settings read error:', e);
           }
 
-          // ===== تحديد مدة الانتظار =====
           const isFeatured = data.isFeatured === true;
           const waitMinutes = isFeatured ? featuredWait : normalWait;
 
@@ -92,12 +88,10 @@ export async function onRequest(context) {
             status: 'pending'
           });
 
-          // نحفظ في KV لمدة 30 يوماً
           await env.VIEWS_KV.put(key, value, {
             expirationTtl: 60 * 60 * 24 * 30
           });
 
-          console.log('Ad stored in KV:', key, '| expires at:', expiresAt.toISOString(), '| wait:', waitMinutes, 'min');
         } catch (kvError) {
           console.error('KV store error:', kvError);
         }
@@ -106,13 +100,13 @@ export async function onRequest(context) {
       message = formatNewAd(data);
 
       replyMarkup = {
-  inline_keyboard: [
-    [
-      { text: '✅ موافقة ونشر', callback_data: `approve_${data.orderCode}` },
-      { text: '❌ رفض', callback_data: `reject_menu_${data.orderCode}` }
-    ]
-  ]
-};
+        inline_keyboard: [
+          [
+            { text: '✅ موافقة ونشر', callback_data: `approve_${data.orderCode}` },
+            { text: '❌ رفض', callback_data: `reject_menu_${data.orderCode}` }
+          ]
+        ]
+      };
     }
     /* ===== إبلاغ عن إعلان ===== */
     else if (action === 'report') {
@@ -129,13 +123,97 @@ export async function onRequest(context) {
     }
     /* ===== طلب حذف ===== */
     else if (action === 'delete_request') {
-      // حذف الإعلان المعلّق من KV (إن وُجد)
-      if (env.VIEWS_KV && data.productId) {
-        try {
-          await env.VIEWS_KV.delete(`pending_ad:${data.productId}`);
-        } catch (e) {}
+      const productId = data.productId;
+      let actionTaken = '';
+      let isPublished = false;
+
+      if (env.VIEWS_KV && productId) {
+        // ===== 1. فحص هل الإعلان قيد المراجعة (في KV) =====
+        const pendingKey = `pending_ad:${productId}`;
+        const pendingRaw = await env.VIEWS_KV.get(pendingKey);
+
+        if (pendingRaw) {
+          // قيد المراجعة → حذف فوري + صور
+          try {
+            const adData = JSON.parse(pendingRaw);
+            const images = adData.images || [];
+            let imagesDeleted = 0;
+
+            // حذف الصور من GitHub
+            for (const imageUrl of images) {
+              try {
+                const match = imageUrl.match(/raw\.githubusercontent\.com\/[^\/]+\/[^\/]+\/[^\/]+\/(.+)$/);
+                if (!match || !match[1]) continue;
+                const filePath = match[1];
+
+                const getFile = await fetch(
+                  `https://api.github.com/repos/${env.GITHUB_REPO}/contents/${filePath}`,
+                  {
+                    headers: {
+                      'Authorization': `token ${env.GITHUB_TOKEN}`,
+                      'User-Agent': 'Kulshi-Kulashi',
+                      'Accept': 'application/vnd.github.v3+json'
+                    }
+                  }
+                );
+
+                if (!getFile.ok) continue;
+                const fileInfo = await getFile.json();
+
+                const deleteRes = await fetch(
+                  `https://api.github.com/repos/${env.GITHUB_REPO}/contents/${filePath}`,
+                  {
+                    method: 'DELETE',
+                    headers: {
+                      'Authorization': `token ${env.GITHUB_TOKEN}`,
+                      'User-Agent': 'Kulshi-Kulashi',
+                      'Accept': 'application/vnd.github.v3+json',
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      message: `Delete pending ad images ${productId}`,
+                      sha: fileInfo.sha,
+                      branch: 'main'
+                    })
+                  }
+                );
+
+                if (deleteRes.ok) imagesDeleted++;
+              } catch (e) {}
+            }
+
+            // حذف الإعلان من KV
+            await env.VIEWS_KV.delete(pendingKey);
+
+            actionTaken = `حذف فوري (قيد المراجعة) + ${imagesDeleted} صورة`;
+          } catch (e) {
+            console.error('Delete pending error:', e);
+            actionTaken = 'فشل الحذف';
+          }
+        } else {
+          // ===== 2. الإعلان منشور (في ads.json) =====
+          isPublished = true;
+          actionTaken = 'منشور في ads.json - اضغط زر الحذف';
+        }
       }
+
       message = formatDeleteRequest(data);
+      message += `\n\n━━━━━━━━━━━━━━━━━━━━\n`;
+
+      if (isPublished) {
+        message += `⚠️ <b>الحالة:</b> ${actionTaken}\n\n`;
+        message += `<b>اضغط "🗑️ حذف نهائي" للحذف من الموقع + الصور</b>`;
+
+        replyMarkup = {
+          inline_keyboard: [
+            [
+              { text: '🗑️ حذف نهائي', callback_data: `delete_ad_${productId}` }
+            ]
+          ]
+        };
+      } else {
+        message += `✅ <b>${actionTaken}</b>`;
+      }
     }
     /* ===== اختبار ===== */
     else if (action === 'test') {
@@ -175,7 +253,6 @@ export async function onRequest(context) {
     const tgData = await tgResponse.json();
 
     if (!tgData.ok) {
-      console.error('Telegram error:', tgData);
       return new Response(JSON.stringify({
         success: false,
         error: tgData.description || 'فشل الإرسال إلى تليجرام'
@@ -304,12 +381,12 @@ function formatDeleteRequest(data) {
   msg += `<b>📦 العنوان:</b> ${escapeHTML(data.productTitle)}\n\n`;
 
   msg += `<b>👤 صاحب الإعلان:</b> ${escapeHTML(data.ownerName)}\n`;
-  msg += `<b>📱 الهاتف:</b> ${escapeHTML(data.ownerPhone)}\n\n`;
+  msg += `<b>📱 الهاتف:</b> ${escapeHTML(data.ownerPhone)}\n`;
 
   if (data.reason) {
-    msg += `<b>📝 السبب:</b>\n${escapeHTML(data.reason)}\n\n`;
+    msg += `\n<b>📝 السبب:</b>\n${escapeHTML(data.reason)}\n`;
   }
 
-  msg += `⏰ ${new Date().toLocaleString('ar-IQ')}`;
+  msg += `\n⏰ ${new Date().toLocaleString('ar-IQ')}`;
   return msg;
 }
