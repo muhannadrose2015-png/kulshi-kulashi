@@ -1962,3 +1962,15 @@ body {
 #suggestedSection .section-title button:active {
   background: #e0e2e5 !important;
 }
+/* ===== رسالة الرفض ===== */
+.rejected-notice {
+  background: #ffebee;
+  color: #c62828;
+  border-right: 4px solid #d32f2f;
+  border-radius: 8px;
+  padding: 10px;
+  margin: 8px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: bold;
+}
