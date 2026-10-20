@@ -101,16 +101,104 @@ async function handleApprove(orderCode, callbackId, messageId, chatId, env) {
 }
 
 /* ===== رفض إعلان ===== */
+/* ===== رفض إعلان + حذف صوره ===== */
 async function handleReject(orderCode, callbackId, messageId, chatId, env) {
   try {
-    if (env.VIEWS_KV) {
-      await env.VIEWS_KV.delete(`pending_ad:${orderCode}`);
+    if (!env.VIEWS_KV) {
+      await answerCallback(env, callbackId, '❌ KV غير مربوط');
+      return;
     }
-    await editMessage(env, chatId, messageId,
-      '❌ <b>تم رفض الإعلان</b>\n\nتم حذفه من قائمة الانتظار.', null);
-    await answerCallback(env, callbackId, '❌ تم الرفض');
+
+    // ===== 1. قراءة الإعلان من KV =====
+    const key = `pending_ad:${orderCode}`;
+    const adRaw = await env.VIEWS_KV.get(key);
+
+    if (!adRaw) {
+      await editMessage(env, chatId, messageId, '⚠️ الإعلان غير موجود (ربما حُذف)', null);
+      await answerCallback(env, callbackId, '⚠️ غير موجود');
+      return;
+    }
+
+    const adData = JSON.parse(adRaw);
+
+    // ===== 2. حذف صور الإعلان =====
+    const images = adData.images || [];
+    let imagesDeleted = 0;
+
+    for (const imageUrl of images) {
+      try {
+        const match = imageUrl.match(/raw\.githubusercontent\.com\/[^\/]+\/[^\/]+\/[^\/]+\/(.+)$/);
+        if (!match || !match[1]) continue;
+
+        const filePath = match[1];
+
+        // الحصول على SHA
+        const getFile = await fetch(
+          `https://api.github.com/repos/${env.GITHUB_REPO}/contents/${filePath}`,
+          {
+            headers: {
+              'Authorization': `token ${env.GITHUB_TOKEN}`,
+              'User-Agent': 'Kulshi-Kulashi',
+              'Accept': 'application/vnd.github.v3+json'
+            }
+          }
+        );
+
+        if (!getFile.ok) continue;
+
+        const fileInfo = await getFile.json();
+
+        // حذف الملف
+        const deleteRes = await fetch(
+          `https://api.github.com/repos/${env.GITHUB_REPO}/contents/${filePath}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `token ${env.GITHUB_TOKEN}`,
+              'User-Agent': 'Kulshi-Kulashi',
+              'Accept': 'application/vnd.github.v3+json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              message: `Delete rejected ad images ${orderCode}`,
+              sha: fileInfo.sha,
+              branch: 'main'
+            })
+          }
+        );
+
+        if (deleteRes.ok) imagesDeleted++;
+      } catch (imgErr) {
+        console.error('Image delete error:', imageUrl, imgErr);
+      }
+    }
+
+    // ===== 3. حذف الإعلان من KV =====
+    await env.VIEWS_KV.delete(key);
+
+    // ===== 4. حفظ علامة الرفض في KV (للمستخدم) =====
+    const rejectedKey = `rejected_ad:${orderCode}`;
+    await env.VIEWS_KV.put(rejectedKey, JSON.stringify({
+      orderCode: orderCode,
+      title: adData.title,
+      rejectedAt: new Date().toISOString(),
+      reason: 'رفض من الإدارة'
+    }), {
+      expirationTtl: 60 * 60 * 24 * 30 // 30 يوم
+    });
+
+    // ===== 5. تعديل الرسالة =====
+    const msg = `❌ <b>تم رفض الإعلان</b>\n\n` +
+      `📦 ${escapeHTML(adData.title)}\n` +
+      `🖼️ تم حذف ${imagesDeleted}/${images.length} صورة\n` +
+      `📝 تم إعلام المستخدم بالرفض`;
+
+    await editMessage(env, chatId, messageId, msg, null);
+    await answerCallback(env, callbackId, `❌ تم الرفض (${imagesDeleted} صورة)`);
+
   } catch (e) {
-    await answerCallback(env, callbackId, '❌ فشل');
+    console.error('Reject error:', e);
+    await answerCallback(env, callbackId, '❌ فشل: ' + e.message);
   }
 }
 
