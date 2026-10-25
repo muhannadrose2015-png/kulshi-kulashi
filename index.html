@@ -343,51 +343,76 @@ async function trackVisit() {
    ========================================== */
 async function loadSiteStatsPublic() {
   try {
-    const response = await fetch('/api/get-stats');
+    const section = document.getElementById('siteStatsSection');
+    const container = document.getElementById('siteStatsPublic');
+
+    if (!section || !container) return;
+
+    // timeout 5 ثوانٍ
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch('/api/get-stats', {
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    // إذا فشل الطلب → أخفِ القسم (لا نُظهر خطأ)
+    if (!response.ok) {
+      section.style.display = 'none';
+      return;
+    }
+
     const data = await response.json();
 
     // إذا الإحصائيات غير معروضة للزوار
     if (!data.success || !data.showToPublic) {
-      document.getElementById('siteStatsSection').style.display = 'none';
+      section.style.display = 'none';
       return;
     }
 
-    const stats = data.stats;
+    const stats = data.stats || {};
+
+    // فحص البيانات موجودة
+    if (!stats.visitors && stats.visitors !== 0) {
+      section.style.display = 'none';
+      return;
+    }
 
     // عرض القسم
-    const section = document.getElementById('siteStatsSection');
-    const container = document.getElementById('siteStatsPublic');
-
     container.innerHTML = `
       <div class="public-stat-box">
         <div class="public-stat-icon">👥</div>
-        <div class="public-stat-number">${stats.visitors.toLocaleString('en-US')}</div>
+        <div class="public-stat-number">${(stats.visitors || 0).toLocaleString('en-US')}</div>
         <div class="public-stat-label">زائر</div>
       </div>
       <div class="public-stat-box">
         <div class="public-stat-icon">👤</div>
-        <div class="public-stat-number">${stats.users.toLocaleString('en-US')}</div>
+        <div class="public-stat-number">${(stats.users || 0).toLocaleString('en-US')}</div>
         <div class="public-stat-label">مستخدم</div>
       </div>
       <div class="public-stat-box">
         <div class="public-stat-icon">📅</div>
-        <div class="public-stat-number">${stats.todayVisitors.toLocaleString('en-US')}</div>
+        <div class="public-stat-number">${(stats.todayVisitors || 0).toLocaleString('en-US')}</div>
         <div class="public-stat-label">زائر اليوم</div>
       </div>
       <div class="public-stat-box">
         <div class="public-stat-icon">📦</div>
-        <div class="public-stat-number">${stats.ads.toLocaleString('en-US')}</div>
+        <div class="public-stat-number">${(stats.ads || 0).toLocaleString('en-US')}</div>
         <div class="public-stat-label">إعلان</div>
       </div>
     `;
 
     section.style.display = 'block';
+
   } catch (e) {
+    // أي خطأ (timeout, network, json) → أخفِ القسم بصمت
     console.error('Load public stats error:', e);
-    document.getElementById('siteStatsSection').style.display = 'none';
+    const section = document.getElementById('siteStatsSection');
+    if (section) section.style.display = 'none';
   }
 }
-
   /* ==========================================
    الإعلانات المقترحة (عشوائية في كل زيارة)
    ========================================== */
