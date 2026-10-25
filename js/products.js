@@ -18,7 +18,20 @@ const Products = {
     return this._cache;
   }
 
-  const data = await App.fetchJSON('/data/ads.json');
+  // محاولة 1: من الموقع
+  let data = await App.fetchJSON('/data/ads.json');
+
+  // محاولة 2: من GitHub (احتياطي)
+  if (!data) {
+    console.log('محاولة التحميل من GitHub...');
+    try {
+      const response = await fetch('https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/data/ads.json');
+      if (response.ok) data = await response.json();
+    } catch (e) {
+      console.error('GitHub fallback failed:', e);
+    }
+  }
+
   const ads = Array.isArray(data) ? data : [];
 
   const active = ads.filter(ad => ad.status !== 'disabled' && ad.status !== 'rejected');
