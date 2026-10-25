@@ -6,17 +6,24 @@
 const App = {
 
   /* قراءة ملف JSON من المسار */
-  async fetchJSON(path) {
-    try {
-      const response = await fetch(path + '?t=' + Date.now());
-      if (!response.ok) throw new Error('فشل تحميل ' + path);
-      return await response.json();
-    } catch (e) {
-      console.error('خطأ في قراءة JSON:', path, e);
-      return null;
-    }
-  },
+  async fetchJSON(path, timeoutMs = 15000) {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+    const response = await fetch(path + '?t=' + Date.now(), {
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) throw new Error('فشل تحميل ' + path);
+    return await response.json();
+  } catch (e) {
+    console.error('خطأ في قراءة JSON:', path, e);
+    return null;
+  }
+},
   /* تنسيق السعر */
   formatPrice(price, currency = 'IQD') {
     if (!price && price !== 0) return 'السعر عند التواصل';
