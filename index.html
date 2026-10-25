@@ -50,6 +50,13 @@
   <div class="loading" style="grid-column: 1/-1;">
     <div class="spinner"></div>
     <p style="margin-top:10px;">جارٍ التحميل...</p>
+    <p id="loadTimeoutMsg" style="margin-top:15px;font-size:12px;color:#999;display:none;">
+      التحميل يستغرق وقتاً أطول من المعتاد...
+      <br>
+      <button onclick="location.reload()" style="margin-top:10px;background:#ff9900;color:white;border:none;padding:8px 20px;border-radius:6px;font-family:inherit;font-weight:bold;cursor:pointer;">
+        🔄 إعادة المحاولة
+      </button>
+    </p>
   </div>
 </div>
 
@@ -133,28 +140,83 @@
   <script src="/js/favorites.js"></script>
 
 <script>
-/* ===== تشغيل الصفحة ===== */
+/* ===== تشغيل الصفحة (نسخة محمية) ===== */
 (async function init() {
-  await Ban.checkPageAccess();
-  Auth.renderUserHeader();
-
-  if (typeof Favorites !== 'undefined') {
-    Favorites.updateBadge();
+  // 1. فحص الحظر
+  try {
+    await Ban.checkPageAccess();
+  } catch (e) {
+    console.error('Ban check failed:', e);
   }
 
-  // تسجيل الزيارة
-  if (window.trackVisit) {
-    trackVisit();
+  // 2. عرض بيانات المستخدم
+  try {
+    Auth.renderUserHeader();
+  } catch (e) {
+    console.error('Auth header failed:', e);
   }
 
-  // تحميل الإحصائيات (إن كانت مُفعّلة)
-  loadSiteStatsPublic();
+  // 3. تحديث عدّاد المفضلة
+  try {
+    if (typeof Favorites !== 'undefined') {
+      Favorites.updateBadge();
+    }
+  } catch (e) {
+    console.error('Favorites badge failed:', e);
+  }
 
-  // تحميل الإعلانات والأصناف
-  await Products.initHomePage();
-  // تحميل الإعلانات المقترحة
-await loadSuggestedProducts();
+  // 4. تسجيل الزيارة
+  try {
+    if (window.trackVisit) {
+      trackVisit();
+    }
+  } catch (e) {
+    console.error('Track visit failed:', e);
+  }
+
+  // 5. تحميل الإحصائيات
+  try {
+    loadSiteStatsPublic();
+  } catch (e) {
+    console.error('Stats load failed:', e);
+  }
+
+  // 6. تحميل الإعلانات (الأهم)
+  try {
+    await Products.initHomePage();
+  } catch (e) {
+    console.error('Products load failed:', e);
+    const container = document.getElementById('latestProducts');
+    if (container) {
+      container.innerHTML = `
+        <div class="empty-state" style="grid-column: 1 / -1;">
+          <div class="empty-state-icon">⚠️</div>
+          <h3>تعذّر تحميل الإعلانات</h3>
+          <p>يبدو أن هناك مشكلة في الاتصال</p>
+          <button class="btn btn-primary" onclick="location.reload()" style="margin-top:15px;">
+            🔄 إعادة المحاولة
+          </button>
+        </div>
+      `;
+    }
+  }
+
+  // 7. تحميل الاقتراحات
+  try {
+    await loadSuggestedProducts();
+  } catch (e) {
+    console.error('Suggested load failed:', e);
+  }
 })();
+
+/* رسالة بعد 10 ثوانٍ إذا لم تُحمّل الإعلانات */
+setTimeout(() => {
+  const container = document.getElementById('latestProducts');
+  const msg = document.getElementById('loadTimeoutMsg');
+  if (container && !container.querySelector('.product-card') && msg) {
+    msg.style.display = 'block';
+  }
+}, 10000);
 
 /* ===== البحث ===== */
 function doSearch() {
