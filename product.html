@@ -41,6 +41,13 @@
     <div class="loading">
       <div class="spinner"></div>
       <p style="margin-top:10px;">جارٍ التحميل...</p>
+      <p id="productLoadTimeout" style="margin-top:15px;font-size:12px;color:#999;display:none;">
+        التحميل يستغرق وقتاً أطول من المعتاد...
+        <br>
+        <button onclick="location.reload()" style="margin-top:10px;background:#ff9900;color:white;border:none;padding:8px 20px;border-radius:6px;font-family:inherit;font-weight:bold;cursor:pointer;">
+          🔄 إعادة المحاولة
+        </button>
+      </p>
     </div>
   </div>
 
@@ -69,7 +76,7 @@
     <span class="nav-icon">➕</span>
     <span>إضافة</span>
   </a>
-    <a href="/favorites.html" class="nav-item">
+  <a href="/favorites.html" class="nav-item">
     <span class="nav-icon">❤️</span>
     <span>المفضلة</span>
     <span class="fav-badge" id="favBadge" style="display:none;">0</span>
@@ -86,18 +93,63 @@
 <script src="/js/ban.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/products.js"></script>
-<script src="/js/favorites.js"></script>     ← ✅ يجب أن يكون هنا
-<script src="/js/submit.js"></script>       ← أو هنا
+<script src="/js/favorites.js"></script>
 
 <script>
-/* ===== تشغيل الصفحة ===== */
+/* ===== تشغيل الصفحة (نسخة محمية) ===== */
 (async function init() {
-  await Ban.checkPageAccess();
-  Auth.renderUserHeader();
-  // لا نجبر الزائر على التسجيل - يتصفح بحرية
-  Auth.renderUserHeader();
-  await Products.initProductPage();
+  // 1. فحص الحظر
+  try {
+    await Ban.checkPageAccess();
+  } catch (e) {
+    console.error('Ban check failed:', e);
+  }
+
+  // 2. عرض بيانات المستخدم
+  try {
+    Auth.renderUserHeader();
+  } catch (e) {
+    console.error('Auth header failed:', e);
+  }
+
+  // 3. تحديث عدّاد المفضلة
+  try {
+    if (typeof Favorites !== 'undefined') {
+      Favorites.updateBadge();
+    }
+  } catch (e) {
+    console.error('Favorites badge failed:', e);
+  }
+
+  // 4. تحميل صفحة المنتج (الأهم)
+  try {
+    await Products.initProductPage();
+  } catch (e) {
+    console.error('Product load failed:', e);
+    const bodyEl = document.getElementById('productBody');
+    if (bodyEl) {
+      bodyEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">⚠️</div>
+          <h3>تعذّر تحميل المنتج</h3>
+          <p>يبدو أن هناك مشكلة في الاتصال</p>
+          <button class="btn btn-primary" onclick="location.reload()" style="margin-top:15px;">
+            🔄 إعادة المحاولة
+          </button>
+        </div>
+      `;
+    }
+  }
 })();
+
+/* رسالة بعد 10 ثوانٍ إذا لم تُحمّل صفحة المنتج */
+setTimeout(() => {
+  const bodyEl = document.getElementById('productBody');
+  const msg = document.getElementById('productLoadTimeout');
+  if (bodyEl && !bodyEl.querySelector('.product-details') && msg) {
+    msg.style.display = 'block';
+  }
+}, 10000);
 
 /* ===== البحث ===== */
 function doSearch() {
