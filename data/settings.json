@@ -7,7 +7,7 @@
   "soldLifespan": 14,
   
   "_التذكير": "===== تذكير 'هل تم البيع؟' =====",
-  "reminderStartDay": 55,
+  "reminderStartDay": 10,
   "reminderIntervalHours": 4,
   "reminderSameAdDays": 14,
   
