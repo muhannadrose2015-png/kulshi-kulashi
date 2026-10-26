@@ -942,5 +942,27 @@
     "createdAt": "2026-10-20T16:35:09.163Z",
     "publishedAt": "2026-10-20T16:35:09.163Z",
     "autoPublished": true
+  },
+  {
+    "id": "ad_1793008587926",
+    "orderCode": "KK-2026-5991",
+    "title": "مانيلا بيضوي+4",
+    "category": "sweets",
+    "price": 5500,
+    "currency": "IQD",
+    "description": "كيك مانيلا 24 قطعة+4",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1793008236255_1263.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07513585292",
+    "ownerName": "مصطفى الشقاقي",
+    "ownerPhone": "07513585292",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "isFeatured": false,
+    "createdAt": "2026-10-26T09:56:27.926Z",
+    "publishedAt": "2026-10-26T09:56:27.926Z"
   }
 ]
