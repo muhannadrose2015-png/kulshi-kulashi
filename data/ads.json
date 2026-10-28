@@ -1078,5 +1078,31 @@
     "isFeatured": false,
     "createdAt": "2026-10-28T19:38:08.422Z",
     "publishedAt": "2026-10-28T19:38:08.422Z"
+  },
+  {
+    "id": "ad_1793217245567",
+    "orderCode": "KK-2026-7157",
+    "title": "سوت طلعه أنيق وعملي",
+    "category": "fashion",
+    "price": 22000,
+    "currency": "IQD",
+    "description": "✨ سوت طلعة موديل أنيق وعملي\n🧸 خامة بهارية دافئة وناعمة\n🇹🇷 صناعة تركية\n\n📏 القياسات: المتوفرة مكتوبة ع كل صورة\n\n⚖️ يناسب الأوزان من 55 إلى 100 كيلو\n\n💰 السعر:22،000 فقط\n\n🚚 خدمة التوصيل: 5,000 دينار لجميع المحافظات\n\n🤍 تألقي بالشتاء مع متجر الرونق",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1793216430457_9668.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1793216432627_2791.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1793216434341_9361.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1793216436336_1782.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1793216438240_5810.jpg"
+    ],
+    "city": "بغداد",
+    "whatsapp": "07761297343",
+    "ownerName": "متجر الرونق",
+    "ownerPhone": "07761297343",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "isFeatured": false,
+    "createdAt": "2026-10-28T19:54:05.567Z",
+    "publishedAt": "2026-10-28T19:54:05.567Z"
   }
 ]
