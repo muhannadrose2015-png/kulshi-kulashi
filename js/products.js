@@ -10,7 +10,8 @@ const Products = {
   _viewsCache: null,
   _viewsCacheTime: 0,
   _viewsCacheDuration: 5 * 60 * 1000,
-
+  _currentProduct: null,   // ← جديد
+   
   /* ===== تحميل الإعلانات ===== */
   async loadAll(forceRefresh = false) {
   const now = Date.now();
