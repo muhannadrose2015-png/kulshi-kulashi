@@ -1,5 +1,5 @@
 /* ==========================================
-   Cloudflare Function - استقبال/تعديل التقييمات
+   Cloudflare Function - استقبال/تعديل التقييمات + ردود
    المسار: /api/review
    المفتاح: hash(phone + IP)
    ========================================== */
@@ -39,9 +39,14 @@ export async function onRequest(context) {
     }
 
     const body = await request.json();
-    const { productId, rating, comment, reviewerName, reviewerPhone, isUpdate } = body;
+    const { action, productId, rating, comment, reviewerName, reviewerPhone, isUpdate, reviewKey, replyText } = body;
 
-    // ===== التحقق =====
+    // ===== فحص الطلب: جديد أم رد؟ =====
+    if (action === 'add_reply') {
+      return await handleAddReply(env, body, corsHeaders);
+    }
+
+    // ===== إضافة/تعديل تقييم =====
     if (!productId) {
       return new Response(JSON.stringify({
         success: false,
@@ -78,16 +83,15 @@ export async function onRequest(context) {
       cleanComment = String(comment).trim().substring(0, 300);
     }
 
-    // ===== المفتاح الفريد: phone + IP =====
+    // المفتاح الفريد: phone + IP
     const ip = request.headers.get('CF-Connecting-IP') ||
                request.headers.get('X-Forwarded-For')?.split(',')[0] ||
                'unknown';
 
     const userHash = await hashString(`${reviewerPhone}_${ip}`);
-    const reviewKey = `review:${productId}:${userHash}`;
+    const reviewKey2 = `review:${productId}:${userHash}`;
 
-    // فحص هل هناك تقييم سابق
-    const existingRaw = await env.REVIEWS_KV.get(reviewKey);
+    const existingRaw = await env.REVIEWS_KV.get(reviewKey2);
     const existing = existingRaw ? JSON.parse(existingRaw) : null;
 
     if (existing && !isUpdate) {
@@ -101,70 +105,29 @@ export async function onRequest(context) {
       });
     }
 
-    // ===== البيانات النهائية =====
     const review = {
       productId: productId,
       rating: ratingNum,
       comment: cleanComment,
       reviewerName: (reviewerName || '').trim().substring(0, 30) || 'زائر',
       reviewerPhone: String(reviewerPhone).trim().substring(0, 15),
+      replies: existing && existing.replies ? existing.replies : [],
       createdAt: existing ? existing.createdAt : new Date().toISOString(),
       updatedAt: isUpdate ? new Date().toISOString() : null,
       isEdited: !!isUpdate
     };
 
-    // حفظ في KV
-    await env.REVIEWS_KV.put(reviewKey, JSON.stringify(review), {
+    await env.REVIEWS_KV.put(reviewKey2, JSON.stringify(review), {
       expirationTtl: 60 * 60 * 24 * 365 * 5
     });
 
-    // إضافة لفهرس التقييمات (إن لم يكن موجوداً)
     if (!existing) {
       const indexKey = `product_reviews:${productId}`;
       const indexRaw = await env.REVIEWS_KV.get(indexKey);
       const index = indexRaw ? JSON.parse(indexRaw) : [];
-      if (!index.includes(reviewKey)) {
-        index.push(reviewKey);
-        await env.REVIEWS_KV.put(indexKey, JSON.stringify(index));
-      }
-    }
-
-    // ===== إشعار تليجرام =====
-    if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
-      if (ratingNum <= 2 || isUpdate) {
-        try {
-          const action = isUpdate ? 'تعديل تقييم' : 'تقييم سلبي';
-          const emoji = isUpdate ? '✏️' : '⚠️';
-
-          const msg = `<b>${emoji} ${action}</b>\n` +
-            `━━━━━━━━━━━━━━━━━━━━\n\n` +
-            `<b>📦 الإعلان:</b> ${escapeHTML(productId)}\n` +
-            `<b>⭐ التقييم:</b> ${ratingNum}/5\n` +
-            `<b>👤 المُقيِّم:</b> ${escapeHTML(review.reviewerName)}\n` +
-            `<b>📱 الهاتف:</b> ${escapeHTML(review.reviewerPhone)}\n` +
-            (cleanComment ? `\n<b>💬 التعليق:</b>\n${escapeHTML(cleanComment)}\n` : '') +
-            `\n⏰ ${new Date().toLocaleString('ar-IQ')}`;
-
-          await fetch(
-            `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: env.TELEGRAM_CHAT_ID,
-                text: msg,
-                parse_mode: 'HTML',
-                reply_markup: {
-                  inline_keyboard: [[
-                    { text: '🗑️ حذف التقييم', callback_data: `del_review_${reviewKey}` }
-                  ]]
-                }
-              })
-            }
-          );
-        } catch (e) {
-          console.error('Telegram notify error:', e);
-        }
+      if (!index.includes(reviewKey2)) {
+        index.push(reviewKey2);
+        await env.VIEWS_KV.put(indexKey, JSON.stringify(index));
       }
     }
 
@@ -188,20 +151,138 @@ export async function onRequest(context) {
   }
 }
 
-/* ===== دالة Hash ===== */
+/* ==========================================
+   إضافة رد (من صاحب الإعلان)
+   ========================================== */
+async function handleAddReply(env, body, corsHeaders) {
+  const { reviewKey, replyText, replierPhone, replierName } = body;
+
+  if (!reviewKey || !replyText || !replierPhone) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'البيانات ناقصة'
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  const cleanReply = String(replyText).trim().substring(0, 300);
+  if (cleanReply.length < 2) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'الرد قصير جداً'
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  // جلب التقييم الأصلي
+  const reviewRaw = await env.REVIEWS_KV.get(reviewKey);
+  if (!reviewRaw) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'التقييم غير موجود'
+    }), {
+      status: 404,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  const review = JSON.parse(reviewRaw);
+
+  // فحص: هل المُرد يملك الإعلان؟
+  // نحتاج التحقق من ads.json
+  try {
+    const adsFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/ads.json`;
+    const adsRes = await fetch(adsFile, {
+      headers: {
+        'Authorization': `token ${env.GITHUB_TOKEN}`,
+        'User-Agent': 'Kulshi-Kulashi',
+        'Accept': 'application/vnd.github.v3+json'
+      }
+    });
+
+    if (!adsRes.ok) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'فشل التحقق من الملكية'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const adsData = await adsRes.json();
+    const ads = JSON.parse(
+      decodeURIComponent(escape(atob(adsData.content.replace(/\n/g, ''))))
+    );
+
+    const product = ads.find(ad => String(ad.id) === String(review.productId));
+    
+    if (!product) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'الإعلان غير موجود'
+      }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // التحقق: هل المرد يملك الإعلان؟
+    const ownerPhone = String(product.ownerPhone || '').replace(/[^0-9]/g, '');
+    const replierPhoneClean = String(replierPhone).replace(/[^0-9]/g, '');
+
+    if (ownerPhone !== replierPhoneClean) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'فقط صاحب الإعلان يمكنه الرد'
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // إضافة الرد
+    if (!review.replies) review.replies = [];
+    
+    review.replies.push({
+      text: cleanReply,
+      replierName: (replierName || 'البائع').trim().substring(0, 30),
+      createdAt: new Date().toISOString()
+    });
+
+    // حفظ التقييم المحدث
+    await env.REVIEWS_KV.put(reviewKey, JSON.stringify(review), {
+      expirationTtl: 60 * 60 * 24 * 365 * 5
+    });
+
+    return new Response(JSON.stringify({
+      success: true,
+      review: review
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (e) {
+    console.error('Add reply error:', e);
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'خطأ داخلي: ' + e.message
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+/* ===== Hash ===== */
 async function hashString(str) {
   const encoder = new TextEncoder();
   const data = encoder.encode(str + 'kulshi_salt_2026');
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/* ===== حماية HTML ===== */
-function escapeHTML(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 }
