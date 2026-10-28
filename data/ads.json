@@ -1104,5 +1104,27 @@
     "isFeatured": false,
     "createdAt": "2026-10-28T19:54:05.567Z",
     "publishedAt": "2026-10-28T19:54:05.567Z"
+  },
+  {
+    "id": "ad_1793224510161_35",
+    "orderCode": "KK-2026-7624",
+    "title": "قاصر صحت بطل",
+    "category": "home",
+    "price": 7500,
+    "currency": "IQD",
+    "description": "قاصر بطل اصلي .. توصيل مجاني داخل الفلوجة",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1793223295089_5775.jpg"
+    ],
+    "city": "الفلوجة",
+    "whatsapp": "07873444857",
+    "ownerName": "علاوي",
+    "ownerPhone": "07856761411",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-10-28T21:55:10.161Z",
+    "publishedAt": "2026-10-28T21:55:10.161Z",
+    "autoPublished": true
   }
 ]
