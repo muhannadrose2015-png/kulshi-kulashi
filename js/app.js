@@ -7,23 +7,24 @@ const App = {
 
   /* قراءة ملف JSON من المسار */
   async fetchJSON(path, timeoutMs = 15000) {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    const response = await fetch(path + '?t=' + Date.now(), {
-      signal: controller.signal
-    });
+      const response = await fetch(path + '?t=' + Date.now(), {
+        signal: controller.signal
+      });
 
-    clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
 
-    if (!response.ok) throw new Error('فشل تحميل ' + path);
-    return await response.json();
-  } catch (e) {
-    console.error('خطأ في قراءة JSON:', path, e);
-    return null;
-  }
-},
+      if (!response.ok) throw new Error('فشل تحميل ' + path);
+      return await response.json();
+    } catch (e) {
+      console.error('خطأ في قراءة JSON:', path, e);
+      return null;
+    }
+  },
+
   /* تنسيق السعر */
   formatPrice(price, currency = 'IQD') {
     if (!price && price !== 0) return 'السعر عند التواصل';
@@ -155,40 +156,59 @@ const App = {
     }, 3000);
   },
 
+  /* ===== التحقق من انتهاء تمييز الإعلان ===== */
+  isAdFeatured(product) {
+    // إذا لم يكن isFeatured → ليس مميزاً
+    if (product.isFeatured !== true) return false;
+
+    // إذا كان مباعاً → ليس مميزاً
+    if (product.sold === true) return false;
+
+    // إذا كان له تاريخ انتهاء → نتحقق
+    if (product.featuredUntil) {
+      const untilDate = new Date(product.featuredUntil);
+      if (!isNaN(untilDate.getTime()) && untilDate <= new Date()) {
+        return false; // انتهى
+      }
+    }
+
+    return true;
+  },
+
   /* إنشاء بطاقة منتج HTML */
-productCardHTML(product, views = 0) {
-  const img = (product.images && product.images[0])
-    ? product.images[0]
-    : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23999">📷</text></svg>';
+  productCardHTML(product, views = 0) {
+    const img = (product.images && product.images[0])
+      ? product.images[0]
+      : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23999">📷</text></svg>';
 
-  const price = this.formatPrice(product.price, product.currency);
-  const location = product.city || '';
-  const isSold = product.sold === true;
-  const isFeatured = product.isFeatured === true && !isSold;
+    const price = this.formatPrice(product.price, product.currency);
+    const location = product.city || '';
+    const isSold = product.sold === true;
+    const isFeatured = this.isAdFeatured(product);
 
-  const cardClass = `product-card ${isSold ? 'sold' : ''} ${isFeatured ? 'is-featured' : ''}`;
+    const cardClass = `product-card ${isSold ? 'sold' : ''} ${isFeatured ? 'is-featured' : ''}`;
 
-  // زر المفضلة ❤️
-  const favBtn = (typeof Favorites !== 'undefined')
-    ? Favorites.buttonHTML(product.id, 'btn-fav-card')
-    : '';
+    // زر المفضلة ❤️
+    const favBtn = (typeof Favorites !== 'undefined')
+      ? Favorites.buttonHTML(product.id, 'btn-fav-card')
+      : '';
 
-  return `
-    <a href="/product.html?id=${product.id}" class="${cardClass}">
-      <div class="product-image-wrap">
-        <img src="${img}" alt="${this.escapeHTML(product.title)}" loading="lazy">
-        ${isFeatured ? `<div class="featured-badge">⭐ مميز</div>` : ''}
-        ${isSold ? `<div class="sold-overlay">🔴 تم البيع</div>` : ''}
-        ${favBtn}
-      </div>
-      <div class="product-info">
-        <div class="product-title">${this.escapeHTML(product.title)}</div>
-        <div class="product-price">${price}</div>
-        ${location ? `<div class="product-location">📍 ${this.escapeHTML(location)}</div>` : ''}
-      </div>
-    </a>
-  `;
-},
+    return `
+      <a href="/product.html?id=${product.id}" class="${cardClass}">
+        <div class="product-image-wrap">
+          <img src="${img}" alt="${this.escapeHTML(product.title)}" loading="lazy">
+          ${isFeatured ? `<div class="featured-badge">⭐ مميز</div>` : ''}
+          ${isSold ? `<div class="sold-overlay">🔴 تم البيع</div>` : ''}
+          ${favBtn}
+        </div>
+        <div class="product-info">
+          <div class="product-title">${this.escapeHTML(product.title)}</div>
+          <div class="product-price">${price}</div>
+          ${location ? `<div class="product-location">📍 ${this.escapeHTML(location)}</div>` : ''}
+        </div>
+      </a>
+    `;
+  },
 
   /* تأمين النصوص من HTML */
   escapeHTML(str) {
