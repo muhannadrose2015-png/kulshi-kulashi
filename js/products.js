@@ -21,7 +21,7 @@ const Products = {
   // محاولة 1: من الموقع
   let data = await App.fetchJSON('/data/ads.json');
 
-  // محاولة 2: من GitHub (احتياطي)
+    // محاولة 2: من GitHub (احتياطي)
   if (!data) {
     console.log('محاولة التحميل من GitHub...');
     try {
@@ -35,6 +35,17 @@ const Products = {
   const ads = Array.isArray(data) ? data : [];
 
   const active = ads.filter(ad => ad.status !== 'disabled' && ad.status !== 'rejected');
+
+  // ===== تصحيح: إذا انتهت featuredUntil → isFeatured = false =====
+  const nowDate = new Date();
+  active.forEach(ad => {
+    if (ad.isFeatured && ad.featuredUntil) {
+      const untilDate = new Date(ad.featuredUntil);
+      if (!isNaN(untilDate.getTime()) && untilDate <= nowDate) {
+        ad.isFeatured = false;
+      }
+    }
+  });
 
   // ترتيب: المميز أولاً، ثم الأحدث
   active.sort((a, b) => {
