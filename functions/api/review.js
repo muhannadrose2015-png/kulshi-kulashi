@@ -1,7 +1,6 @@
 /* ==========================================
    Cloudflare Function - استقبال/تعديل التقييمات + ردود
    المسار: /api/review
-   المفتاح: hash(phone + IP)
    ========================================== */
 
 export async function onRequest(context) {
@@ -39,14 +38,16 @@ export async function onRequest(context) {
     }
 
     const body = await request.json();
-    const { action, productId, rating, comment, reviewerName, reviewerPhone, isUpdate, reviewKey, replyText } = body;
+    const { action } = body;
 
-    // ===== فحص الطلب: جديد أم رد؟ =====
+    // ===== الرد على تقييم =====
     if (action === 'add_reply') {
       return await handleAddReply(env, body, corsHeaders);
     }
 
     // ===== إضافة/تعديل تقييم =====
+    const { productId, rating, comment, reviewerName, reviewerPhone, isUpdate } = body;
+
     if (!productId) {
       return new Response(JSON.stringify({
         success: false,
@@ -83,15 +84,15 @@ export async function onRequest(context) {
       cleanComment = String(comment).trim().substring(0, 300);
     }
 
-    // المفتاح الفريد: phone + IP
+    // المفتاح الفريد
     const ip = request.headers.get('CF-Connecting-IP') ||
                request.headers.get('X-Forwarded-For')?.split(',')[0] ||
                'unknown';
 
     const userHash = await hashString(`${reviewerPhone}_${ip}`);
-    const reviewKey2 = `review:${productId}:${userHash}`;
+    const reviewKey = `review:${productId}:${userHash}`;
 
-    const existingRaw = await env.REVIEWS_KV.get(reviewKey2);
+    const existingRaw = await env.REVIEWS_KV.get(reviewKey);
     const existing = existingRaw ? JSON.parse(existingRaw) : null;
 
     if (existing && !isUpdate) {
@@ -117,17 +118,19 @@ export async function onRequest(context) {
       isEdited: !!isUpdate
     };
 
-    await env.REVIEWS_KV.put(reviewKey2, JSON.stringify(review), {
+    // حفظ في REVIEWS_KV
+    await env.REVIEWS_KV.put(reviewKey, JSON.stringify(review), {
       expirationTtl: 60 * 60 * 24 * 365 * 5
     });
 
+    // إضافة للفهرس (في REVIEWS_KV - صحيح الآن)
     if (!existing) {
       const indexKey = `product_reviews:${productId}`;
       const indexRaw = await env.REVIEWS_KV.get(indexKey);
       const index = indexRaw ? JSON.parse(indexRaw) : [];
-      if (!index.includes(reviewKey2)) {
-        index.push(reviewKey2);
-        await env.VIEWS_KV.put(indexKey, JSON.stringify(index));
+      if (!index.includes(reviewKey)) {
+        index.push(reviewKey);
+        await env.REVIEWS_KV.put(indexKey, JSON.stringify(index));
       }
     }
 
@@ -178,7 +181,7 @@ async function handleAddReply(env, body, corsHeaders) {
     });
   }
 
-  // جلب التقييم الأصلي
+  // جلب التقييم
   const reviewRaw = await env.REVIEWS_KV.get(reviewKey);
   if (!reviewRaw) {
     return new Response(JSON.stringify({
@@ -192,8 +195,7 @@ async function handleAddReply(env, body, corsHeaders) {
 
   const review = JSON.parse(reviewRaw);
 
-  // فحص: هل المُرد يملك الإعلان؟
-  // نحتاج التحقق من ads.json
+  // التحقق من الملكية
   try {
     const adsFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/ads.json`;
     const adsRes = await fetch(adsFile, {
@@ -220,7 +222,7 @@ async function handleAddReply(env, body, corsHeaders) {
     );
 
     const product = ads.find(ad => String(ad.id) === String(review.productId));
-    
+
     if (!product) {
       return new Response(JSON.stringify({
         success: false,
@@ -231,7 +233,6 @@ async function handleAddReply(env, body, corsHeaders) {
       });
     }
 
-    // التحقق: هل المرد يملك الإعلان؟
     const ownerPhone = String(product.ownerPhone || '').replace(/[^0-9]/g, '');
     const replierPhoneClean = String(replierPhone).replace(/[^0-9]/g, '');
 
@@ -247,14 +248,13 @@ async function handleAddReply(env, body, corsHeaders) {
 
     // إضافة الرد
     if (!review.replies) review.replies = [];
-    
+
     review.replies.push({
       text: cleanReply,
       replierName: (replierName || 'البائع').trim().substring(0, 30),
       createdAt: new Date().toISOString()
     });
 
-    // حفظ التقييم المحدث
     await env.REVIEWS_KV.put(reviewKey, JSON.stringify(review), {
       expirationTtl: 60 * 60 * 24 * 365 * 5
     });
