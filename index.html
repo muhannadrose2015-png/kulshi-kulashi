@@ -20,6 +20,11 @@
 </head>
 <body>
 
+<!-- زر التحديث -->
+<button id="forceUpdateBtn" onclick="forceUpdate()" style="position:fixed; top:70px; right:15px; background:#ff9900; color:white; border:none; padding:8px 12px; border-radius:8px; font-family:'Cairo',sans-serif; font-size:12px; font-weight:bold; cursor:pointer; z-index:50; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+  🔄 تحديث
+</button>
+
 <!-- الهيدر -->
 <header class="header">
   <div class="header-top">
@@ -140,6 +145,62 @@
   <script src="/js/favorites.js"></script>
 
 <script>
+/* ===== التحقق من إصدار الكود ===== */
+(function checkCodeVersion() {
+  const CODE_VERSION = 'v5';
+  const storedVersion = localStorage.getItem('kk_code_version');
+
+  if (storedVersion !== CODE_VERSION) {
+    console.log('🔄 إصدار جديد، جارٍ التحديث...');
+    localStorage.setItem('kk_code_version', CODE_VERSION);
+
+    // مسح كل Cache تلقائياً
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        return Promise.all(names.map(name => caches.delete(name)));
+      }).then(() => {
+        console.log('✅ تم مسح Cache');
+        // إعادة تحميل الصفحة
+        location.reload();
+      });
+    } else {
+      location.reload();
+    }
+  }
+})();
+
+/* ===== دالة زر التحديث ===== */
+async function forceUpdate() {
+  const btn = document.getElementById('forceUpdateBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ جارٍ...';
+  }
+
+  try {
+    // 1. مسح Cache
+    if ('caches' in window) {
+      const names = await caches.keys();
+      await Promise.all(names.map(name => caches.delete(name)));
+    }
+
+    // 2. إلغاء Service Worker
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map(reg => reg.unregister()));
+    }
+
+    // 3. مسح إصدار الكود
+    localStorage.removeItem('kk_code_version');
+
+    // 4. إعادة التحميل
+    location.reload(true);
+  } catch (e) {
+    console.error('Force update failed:', e);
+    location.reload(true);
+  }
+}
+
 /* ===== تشغيل الصفحة (نسخة محمية) ===== */
 (async function init() {
   // 1. فحص الحظر
