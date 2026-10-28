@@ -245,7 +245,9 @@ const Products = {
     }
 
     const product = await this.getById(productId);
-
+     // حفظ المنتج الحالي للوصول إليه لاحقاً
+this._currentProduct = product;
+     
     if (!product) {
       bodyEl.innerHTML = this.emptyStateHTML('⚠️ المنتج غير موجود أو تم حذفه');
       return;
@@ -663,29 +665,140 @@ if (userReview) {
   },
 
   /* عرض تقييم عادي (من شخص آخر) */
-  reviewItemHTML(review) {
-    const stars = '⭐'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
-    const name = App.escapeHTML(review.reviewerName || 'زائر');
-    const initial = name.charAt(0).toUpperCase();
-    const isEdited = review.isEdited || review.updatedAt;
+  /* عرض تقييم عادي (من شخص آخر) */
+reviewItemHTML(review) {
+  const stars = '⭐'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
+  const name = App.escapeHTML(review.reviewerName || 'زائر');
+  const initial = name.charAt(0).toUpperCase();
+  const isEdited = review.isEdited || review.updatedAt;
 
-    return `
-      <div class="review-item">
-        <div class="review-header">
-          <div class="review-avatar">${initial}</div>
-          <div class="review-info">
-            <div class="review-name">${name}</div>
-            <div class="review-date">
-              ${App.formatDate(review.createdAt)}
-              ${isEdited ? '<span style="color:var(--accent);"> (مُعدّل)</span>' : ''}
-            </div>
+  // هل المستخدم الحالي صاحب الإعلان؟
+  const user = KK.getUser();
+  const isOwner = user && user.phone && this._currentProduct && 
+    String(this._currentProduct.ownerPhone || '').replace(/[^0-9]/g, '') === 
+    String(user.phone).replace(/[^0-9]/g, '');
+
+  // عرض الردود
+  const repliesHTML = (review.replies && review.replies.length > 0) ? `
+    <div class="review-replies">
+      ${review.replies.map(r => `
+        <div class="review-reply">
+          <div class="reply-header">
+            <span class="reply-badge">💬 ${App.escapeHTML(r.replierName || 'البائع')}</span>
+            <span class="reply-date">${App.formatDate(r.createdAt)}</span>
           </div>
-          <div class="review-stars">${stars}</div>
+          <div class="reply-text">${App.escapeHTML(r.text)}</div>
         </div>
-        ${review.comment ? `<div class="review-comment">${App.escapeHTML(review.comment)}</div>` : ''}
+      `).join('')}
+    </div>
+  ` : '';
+
+  // زر "رد" — يظهر فقط لصاحب الإعلان
+  const replyBtnHTML = isOwner ? `
+    <div class="review-reply-action">
+      <button class="btn-reply" onclick="Products.openReplyDialog('${review._key}', '${App.escapeHTML(review.reviewerName || '')}')">
+        💬 رد على التقييم
+      </button>
+    </div>
+  ` : '';
+
+  return `
+    <div class="review-item">
+      <div class="review-header">
+        <div class="review-avatar">${initial}</div>
+        <div class="review-info">
+          <div class="review-name">${name}</div>
+          <div class="review-date">
+            ${App.formatDate(review.createdAt)}
+            ${isEdited ? '<span style="color:var(--accent);"> (مُعدّل)</span>' : ''}
+          </div>
+        </div>
+        <div class="review-stars">${stars}</div>
       </div>
-    `;
-  },
+      ${review.comment ? `<div class="review-comment">${App.escapeHTML(review.comment)}</div>` : ''}
+      ${repliesHTML}
+      ${replyBtnHTML}
+    </div>
+  `;
+},
+
+/* فتح نافذة الرد */
+openReplyDialog(reviewKey, reviewerName) {
+  const user = KK.getUser();
+  if (!user) {
+    App.toast('يجب تسجيل الدخول', 'error');
+    return;
+  }
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  modal.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-title">💬 الرد على التقييم</div>
+      <div class="modal-subtitle">ردّك على ${App.escapeHTML(reviewerName || 'المقيّم')}</div>
+      <textarea id="replyText" placeholder="اكتب ردك..." maxlength="300" rows="4" class="review-textarea"></textarea>
+      <p id="replyError" style="color:#d32f2f;font-size:13px;margin-top:8px;min-height:18px;"></p>
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button class="btn btn-secondary" style="flex:1;" onclick="this.closest('.modal-overlay').remove()">إلغاء</button>
+        <button class="btn btn-primary" style="flex:2;" onclick="Products.submitReply('${reviewKey}')">📤 إرسال الرد</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+},
+
+/* إرسال الرد */
+async submitReply(reviewKey) {
+  const user = KK.getUser();
+  if (!user) return;
+
+  const text = document.getElementById('replyText').value.trim();
+  const errorEl = document.getElementById('replyError');
+
+  errorEl.textContent = '';
+
+  if (text.length < 2) {
+    errorEl.textContent = '❌ الرد قصير جداً';
+    return;
+  }
+
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳ جارٍ الإرسال...';
+
+  try {
+    const response = await fetch('/api/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'add_reply',
+        reviewKey: reviewKey,
+        replyText: text,
+        replierPhone: user.phone,
+        replierName: user.name
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      document.querySelector('.modal-overlay')?.remove();
+      App.toast('✅ تم إضافة ردك', 'success');
+      await this.renderReviews(this._currentProduct.id);
+    } else {
+      errorEl.textContent = '❌ ' + (data.error || 'فشل الإرسال');
+      btn.disabled = false;
+      btn.textContent = '📤 إرسال الرد';
+    }
+  } catch (e) {
+    errorEl.textContent = '❌ فشل الاتصال';
+    btn.disabled = false;
+    btn.textContent = '📤 إرسال الرد';
+  }
+},
 
   setupRatingSelector() {
     const selector = document.getElementById('ratingSelector');
