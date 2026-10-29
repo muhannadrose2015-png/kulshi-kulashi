@@ -1,6 +1,7 @@
 /* ==========================================
    Cloudflare Function - طلب ترقية إعلان / اشتراك
    المسار: /api/promote
+   Body: { type, userId, userName, userPhone, orderCode, orderTitle, receiptInfo }
    ========================================== */
 
 export async function onRequest(context) {
@@ -38,10 +39,9 @@ export async function onRequest(context) {
     }
 
     const body = await request.json();
-    const { type, userPhone, userName, orderCode, orderTitle, receiptInfo } = body;
-    // type: 'promote_ad' أو 'subscribe'
+    const { type, userId, userName, userPhone, orderCode, orderTitle, receiptInfo } = body;
 
-    if (!type || !userPhone || !userName) {
+    if (!type || !userId || !userName) {
       return new Response(JSON.stringify({
         success: false,
         error: 'البيانات ناقصة'
@@ -84,7 +84,8 @@ export async function onRequest(context) {
       msg += `<b>📦 الإعلان:</b> ${escapeHTML(orderTitle || 'غير محدد')}\n`;
       msg += `<b>🆔 الكود:</b> <code>${escapeHTML(orderCode)}</code>\n\n`;
       msg += `<b>👤 المستخدم:</b> ${escapeHTML(userName)}\n`;
-      msg += `<b>📱 الهاتف:</b> ${escapeHTML(userPhone)}\n\n`;
+      msg += `<b>📱 الهاتف:</b> ${escapeHTML(userPhone || '')}\n`;
+      msg += `<b>🆔 userId:</b> <code>${escapeHTML(userId)}</code>\n\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `<b>💰 المبلغ:</b> 2,000 د.ع\n`;
       msg += `<b>⏱️ المدة:</b> 10 أيام\n\n`;
@@ -101,7 +102,8 @@ export async function onRequest(context) {
       msg = `<b>💎 طلب اشتراك شهري</b>\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
       msg += `<b>👤 المستخدم:</b> ${escapeHTML(userName)}\n`;
-      msg += `<b>📱 الهاتف:</b> ${escapeHTML(userPhone)}\n\n`;
+      msg += `<b>📱 الهاتف:</b> ${escapeHTML(userPhone || '')}\n`;
+      msg += `<b>🆔 userId:</b> <code>${escapeHTML(userId)}</code>\n\n`;
       msg += `━━━━━━━━━━━━━━━━━━━━\n`;
       msg += `<b>💰 المبلغ:</b> 15,000 د.ع\n`;
       msg += `<b>⏱️ المدة:</b> 30 يوم\n\n`;
@@ -113,7 +115,8 @@ export async function onRequest(context) {
       msg += `⏰ ${new Date().toLocaleString('ar-IQ')}\n\n`;
       msg += `<b>تحقق من استلام الدفع ثم اختر:</b>`;
 
-      callbackData = `subscribe_${userPhone}`;
+      // نستخدم userId بدل phone
+      callbackData = `subscribe_${userId}`;
     }
 
     // ===== أزرار =====
