@@ -147,6 +147,7 @@ export async function onRequest(context) {
       const newAd = {
         id: `ad_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         orderCode: adData.orderCode,
+         userId: adData.userId || null,    
         title: adData.title,
         category: adData.category,
         price: Number(adData.price),
