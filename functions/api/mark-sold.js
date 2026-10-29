@@ -1,6 +1,7 @@
 /* ==========================================
    Cloudflare Function - تعليم إعلان كـ "تم البيع"
    المسار: /api/mark-sold
+   Body: { productId, userId, action }
    ========================================== */
 
 export async function onRequest(context) {
@@ -28,15 +29,14 @@ export async function onRequest(context) {
 
   try {
     const body = await request.json();
-    const { productId, userPhone, action } = body;
+    const { productId, userId, action } = body;
 
-    // action = 'mark' أو 'unmark'
     const isUnmark = action === 'unmark';
 
-    if (!productId || !userPhone) {
+    if (!productId || !userId) {
       return new Response(JSON.stringify({
         success: false,
-        error: 'البيانات ناقصة'
+        error: 'البيانات ناقصة (productId + userId)'
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -82,10 +82,35 @@ export async function onRequest(context) {
     const ad = ads[adIndex];
 
     // التحقق: هل الإعلان يخص هذا المستخدم؟
-    const adPhone = (ad.ownerPhone || '').replace(/[^0-9]/g, '');
-    const reqPhone = String(userPhone).replace(/[^0-9]/g, '');
+    // 1. فحص userId
+    let isOwner = false;
 
-    if (adPhone !== reqPhone) {
+    if (ad.userId && ad.userId === userId) {
+      isOwner = true;
+    } else if (!ad.userId) {
+      // إعلان قديم بدون userId → نستخدم ownerPhone
+      // نجلب بيانات المستخدم الحالي لمقارنة الأرقام
+      try {
+        const userKey = `user:${userId}`;
+        const userRaw = await env.VIEWS_KV.get(userKey);
+
+        if (userRaw) {
+          const currentUser = JSON.parse(userRaw);
+          const adPhone = (ad.ownerPhone || '').replace(/[^0-9]/g, '');
+          const userPhone = (currentUser.phone || '').replace(/[^0-9]/g, '');
+
+          if (adPhone === userPhone) {
+            isOwner = true;
+            // ربط الإعلان بالـ userId للمستقبل
+            ad.userId = userId;
+          }
+        }
+      } catch (e) {
+        console.error('User fetch error:', e);
+      }
+    }
+
+    if (!isOwner) {
       return new Response(JSON.stringify({
         success: false,
         error: 'هذا الإعلان لا يخصك'
@@ -97,12 +122,10 @@ export async function onRequest(context) {
 
     // ===== التحديث =====
     if (isUnmark) {
-      // إلغاء "تم البيع"
       ad.sold = false;
       delete ad.soldAt;
       ad.updatedAt = new Date().toISOString();
     } else {
-      // تعليم "تم البيع"
       if (ad.sold === true) {
         return new Response(JSON.stringify({
           success: false,
@@ -119,7 +142,7 @@ export async function onRequest(context) {
 
     ads[adIndex] = ad;
 
-    // ===== الكتابة إلى GitHub =====
+    // الكتابة إلى GitHub
     const newContent = JSON.stringify(ads, null, 2);
     const encodedContent = btoa(unescape(encodeURIComponent(newContent)));
 
@@ -144,7 +167,7 @@ export async function onRequest(context) {
       throw new Error(errData.message || 'فشل الحفظ');
     }
 
-    // ===== إشعار في تليجرام (للمعلومية) =====
+    // إشعار في تليجرام
     if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
       try {
         const emoji = isUnmark ? '↩️' : '💰';
