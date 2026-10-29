@@ -145,6 +145,38 @@
   <script src="/js/favorites.js"></script>
 
 <script>
+/* ===== التحقق من تسجيل الدخول ===== */
+(async function checkAuth() {
+  const userId = KK.getUserId();
+
+  if (!userId) {
+    // لم يسجل الدخول → اعرض نافذة التسجيل
+    setTimeout(() => {
+      if (typeof Auth !== 'undefined') {
+        Auth.showAuthModal();
+      }
+    }, 1000);
+    return;
+  }
+
+  // مسجل → جلب بيانات محدثة
+  try {
+    const user = await KK.fetchUserFromServer(userId);
+    if (!user) {
+      KK.clearUserId();
+      setTimeout(() => {
+        if (typeof Auth !== 'undefined') {
+          Auth.showAuthModal();
+        }
+      }, 1000);
+    }
+  } catch (e) {
+    console.error('Auth check error:', e);
+  }
+})();
+</script>
+
+<script>
 /* ===== التحقق من إصدار الكود ===== */
 (function checkCodeVersion() {
   const CODE_VERSION = 'v5';
