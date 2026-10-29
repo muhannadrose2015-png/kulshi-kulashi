@@ -6,11 +6,11 @@ const Quota = {
 
   /* جلب بيانات الحصة */
   async fetch() {
-    const user = KK.getUser();
-    if (!user || !user.phone) return null;
+    const userId = KK.getUserId();
+    if (!userId) return null;
 
     try {
-      const response = await fetch('/api/user-quota?phone=' + encodeURIComponent(user.phone));
+      const response = await fetch('/api/user-quota?userId=' + encodeURIComponent(userId));
       const data = await response.json();
       return data.success ? data : null;
     } catch (e) {
@@ -19,7 +19,7 @@ const Quota = {
     }
   },
 
-  /* عرض صندوق الحصة في صفحة */
+  /* عرض صندوق الحصة */
   async render(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -43,19 +43,16 @@ const Quota = {
     const limit = isPremium ? '∞' : (data.limit || 7);
     const remaining = data.remaining;
 
-    // نسبة الاستهلاك
     let percentage = 0;
     if (!isPremium && data.limit) {
       percentage = Math.min(100, (used / data.limit) * 100);
     }
 
-    // لون النسبة
     let progressColor = '#4caf50';
     if (percentage >= 100) progressColor = '#d32f2f';
     else if (percentage >= 70) progressColor = '#ff9900';
 
     if (isPremium) {
-      // عرض خاص للمشتركين
       container.innerHTML = `
         <div class="quota-card premium">
           <div class="quota-header">
@@ -88,7 +85,6 @@ const Quota = {
       return;
     }
 
-    // عرض عادي
     container.innerHTML = `
       <div class="quota-card">
         <div class="quota-header">
@@ -134,7 +130,6 @@ const Quota = {
     `;
   },
 
-  /* تنسيق نطاق الأسبوع */
   formatWeekRange(weekStart, weekEnd) {
     if (!weekStart || !weekEnd) return '';
     const start = new Date(weekStart);
@@ -143,7 +138,6 @@ const Quota = {
     return `${start.toLocaleDateString('ar-IQ', opts)} → ${end.toLocaleDateString('ar-IQ', opts)}`;
   },
 
-  /* تنسيق التاريخ */
   formatDate(dateStr) {
     try {
       const d = new Date(dateStr);
@@ -153,7 +147,6 @@ const Quota = {
     }
   },
 
-  /* عرض معلومات عن الحد */
   showInfo() {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
