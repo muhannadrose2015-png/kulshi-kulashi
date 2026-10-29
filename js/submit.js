@@ -82,20 +82,21 @@ const price = (priceInput.dataset.rawValue || priceInput.value.replace(/[^\d]/g,
       const categoryName = await Products.getCategoryName(category);
 
       const adData = {
-        orderCode: orderCode,
-        ownerName: user.name,
-        ownerPhone: user.phone,
-        whatsapp: cleanWhatsapp,
-        city: city,
-        category: category,
-        categoryName: categoryName,
-        title: title,
-        price: Number(price),
-        currency: currency,
-        description: description,
-        images: imageUrls,
-        isFeatured: false
-      };
+  orderCode: orderCode,
+  userId: KK.getUserId(),           // ← جديد
+  ownerName: user.name,
+  ownerPhone: user.phone,
+  whatsapp: cleanWhatsapp,
+  city: city,
+  category: category,
+  categoryName: categoryName,
+  title: title,
+  price: Number(price),
+  currency: currency,
+  description: description,
+  images: imageUrls,
+  isFeatured: false
+};
 
       /* ===== المرحلة 5: الإرسال إلى تليجرام ===== */
       btn.textContent = '⏳ جارٍ الإرسال...';
