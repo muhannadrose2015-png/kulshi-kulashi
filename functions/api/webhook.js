@@ -561,6 +561,7 @@ async function publishAdToGitHub(adData, env) {
   const newAd = {
     id: `ad_${Date.now()}`,
     orderCode: adData.orderCode,
+     userId: adData.userId || null,    
     title: adData.title,
     category: adData.category,
     price: Number(adData.price),
