@@ -361,21 +361,20 @@ async function handleApprovePromote(orderCode, callbackId, messageId, chatId, en
 }
 
 /* ===== تفعيل اشتراك ===== */
-async function handleApproveSubscribe(phone, callbackId, messageId, chatId, env) {
+async function handleApproveSubscribe(userId, callbackId, messageId, chatId, env) {
   try {
     if (!env.VIEWS_KV) {
       await answerCallback(env, callbackId, '❌ KV غير مربوط');
       return;
     }
 
-    const phoneHash = await hashString(phone);
-    const premiumKey = `premium:${phoneHash}`;
+    const premiumKey = `premium:${userId}`;
 
     const now = new Date();
     const until = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 يوم
 
     await env.VIEWS_KV.put(premiumKey, JSON.stringify({
-      phone: phone,
+      userId: userId,
       activatedAt: now.toISOString(),
       until: until.toISOString()
     }), {
@@ -385,7 +384,7 @@ async function handleApproveSubscribe(phone, callbackId, messageId, chatId, env)
     const untilStr = until.toLocaleDateString('ar-IQ');
     await editMessage(env, chatId, messageId,
       `💎 <b>تم تفعيل الاشتراك!</b>\n\nالمستخدم الآن مشترك حتى: ${untilStr}\n\n` +
-      `📱 الهاتف: ${escapeHTML(phone)}`, null);
+      `🆔 userId: <code>${escapeHTML(userId)}</code>`, null);
     await answerCallback(env, callbackId, '💎 تم التفعيل');
 
   } catch (e) {
