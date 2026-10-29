@@ -1,7 +1,7 @@
 /* ==========================================
    Cloudflare Function - استهلاك نقطة من الحد الأسبوعي
    المسار: /api/consume-quota
-   Body: { phone, orderCode }
+   Body: { userId, orderCode }
    ========================================== */
 
 export async function onRequest(context) {
@@ -39,27 +39,25 @@ export async function onRequest(context) {
     }
 
     const body = await request.json();
-    const { phone, orderCode } = body;
+    const { userId, orderCode } = body;
 
-    if (!phone) {
+    if (!userId) {
       return new Response(JSON.stringify({
         success: false,
-        error: 'رقم الهاتف مفقود'
+        error: 'userId مفقود'
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    const phoneHash = await hashString(phone);
-    const quotaKey = `quota:${phoneHash}`;
-    const premiumKey = `premium:${phoneHash}`;
-    const usedKey = `used_orders:${phoneHash}`;
+    const quotaKey = `quota:${userId}`;
+    const premiumKey = `premium:${userId}`;
+    const usedKey = `used_orders:${userId}`;
 
-    // حساب بداية الأسبوع
     const { weekStart } = getWeekRange();
 
-    // فحص حالة الاشتراك
+    // فحص الاشتراك
     const premiumRaw = await env.VIEWS_KV.get(premiumKey);
     let isPremium = false;
     if (premiumRaw) {
@@ -71,11 +69,31 @@ export async function onRequest(context) {
       } catch (e) {}
     }
 
-    // جلب الحصة الحالية
+    // جلب حد النشر
+    let weeklyLimit = 7;
+    try {
+      const settingsFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/settings.json`;
+      const settingsRes = await fetch(settingsFile, {
+        headers: {
+          'Authorization': `token ${env.GITHUB_TOKEN}`,
+          'User-Agent': 'Kulshi-Kulashi',
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+
+      if (settingsRes.ok) {
+        const settingsData = await settingsRes.json();
+        const settings = JSON.parse(
+          decodeURIComponent(escape(atob(settingsData.content.replace(/\n/g, ''))))
+        );
+        if (settings.weeklyLimit) weeklyLimit = Number(settings.weeklyLimit);
+      }
+    } catch (e) {}
+
+    // جلب الحصة
     const quotaRaw = await env.VIEWS_KV.get(quotaKey);
     let quota = quotaRaw ? JSON.parse(quotaRaw) : null;
 
-    // إذا لم تكن هناك حصة أو مضى الأسبوع → إعادة تعيين
     if (!quota || quota.weekStart !== weekStart) {
       quota = {
         weekStart: weekStart,
@@ -84,11 +102,11 @@ export async function onRequest(context) {
       };
     }
 
-    // ===== الفحص =====
-    if (!isPremium && quota.count >= 7) {
+    // الفحص
+    if (!isPremium && quota.count >= weeklyLimit) {
       return new Response(JSON.stringify({
         success: false,
-        error: 'وصلت للحد الأسبوعي (7 إعلانات)',
+        error: `وصلت للحد الأسبوعي (${weeklyLimit} إعلانات)`,
         quota: quota,
         isPremium: false
       }), {
@@ -97,22 +115,19 @@ export async function onRequest(context) {
       });
     }
 
-    // ===== الاستهلاك =====
+    // الاستهلاك
     quota.count += 1;
     quota.updatedAt = new Date().toISOString();
 
-    // حفظ الحصة الجديدة
     await env.VIEWS_KV.put(quotaKey, JSON.stringify(quota), {
       expirationTtl: 60 * 60 * 24 * 30
     });
 
-    // ===== تسجيل الإعلان في قائمة "المستخدمة" =====
-    // (حتى لو حذفه لاحقاً، يبقى محسوباً)
+    // تسجيل الإعلان
     if (orderCode) {
       const usedRaw = await env.VIEWS_KV.get(usedKey);
       let usedList = usedRaw ? JSON.parse(usedRaw) : { weekStart: weekStart, codes: [] };
 
-      // إذا مضى الأسبوع → إعادة تعيين
       if (usedList.weekStart !== weekStart) {
         usedList = { weekStart: weekStart, codes: [] };
       }
@@ -122,15 +137,15 @@ export async function onRequest(context) {
       }
 
       await env.VIEWS_KV.put(usedKey, JSON.stringify(usedList), {
-        expirationTtl: 60 * 60 * 24 * 60 // 60 يوماً
+        expirationTtl: 60 * 60 * 24 * 60
       });
     }
 
     return new Response(JSON.stringify({
       success: true,
       used: quota.count,
-      limit: isPremium ? null : 7,
-      remaining: isPremium ? 'unlimited' : Math.max(0, 7 - quota.count),
+      limit: isPremium ? null : weeklyLimit,
+      remaining: isPremium ? 'unlimited' : Math.max(0, weeklyLimit - quota.count),
       isPremium: isPremium,
       weekStart: weekStart
     }), {
@@ -165,13 +180,4 @@ function getWeekRange() {
 
   const weekStart = start.toISOString().split('T')[0];
   return { weekStart };
-}
-
-/* ===== Hash ===== */
-async function hashString(str) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str + 'kulshi_quota_salt_2026');
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
 }
