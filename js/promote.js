@@ -114,6 +114,7 @@ const Promote = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'promote_ad',
+           userId: KK.getUserId(),
           userPhone: user.phone,
           userName: user.name,
           orderCode: orderCode,
@@ -227,6 +228,7 @@ const Promote = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'subscribe',
+           userId: KK.getUserId(),
           userPhone: user.phone,
           userName: user.name,
           receiptInfo: receiptInfo
