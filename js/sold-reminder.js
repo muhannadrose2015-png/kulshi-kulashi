@@ -180,7 +180,7 @@ const SoldReminder = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: orderCode,
-          userPhone: user.phone,
+          userId: KK.getUserId(),
           action: 'mark'
         })
       });
