@@ -2,8 +2,7 @@
    Cloudflare Function - تسجيل مستخدم جديد
    المسار: /api/register-user
    Body: { phone, name, city }
-   يُسجّل كل مستخدم مرة واحدة فقط
-   لا يُرسل إشعارات تليجرام
+   يعيد: { userId, user }
    ========================================== */
 
 export async function onRequest(context) {
@@ -53,39 +52,65 @@ export async function onRequest(context) {
       });
     }
 
-    // Hash للرقم
-    const phoneHash = await hashString(phone);
-    const userKey = `user:${phoneHash}`;
+    const cleanPhone = String(phone).replace(/[^0-9]/g, '');
 
-    // فحص: هل هذا المستخدم مسجّل مسبقاً؟
-    const existing = await env.VIEWS_KV.get(userKey);
-
-    if (existing) {
-      // مسجّل مسبقاً → لا نُعيد العدّ
-      const existingData = JSON.parse(existing);
+    if (cleanPhone.length < 10 || cleanPhone.length > 13) {
       return new Response(JSON.stringify({
-        success: true,
-        isNew: false,
-        registeredAt: existingData.registeredAt
+        success: false,
+        error: 'رقم الهاتف غير صحيح'
       }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
+    // ===== فحص: هل الرقم مسجّل مسبقاً؟ =====
+    const phoneLookupKey = `user_phone:${cleanPhone}`;
+    const existingUserId = await env.VIEWS_KV.get(phoneLookupKey);
+
+    if (existingUserId) {
+      // مسجّل مسبقاً → أعد userId
+      const userKey = `user:${existingUserId}`;
+      const userRaw = await env.VIEWS_KV.get(userKey);
+      
+      if (userRaw) {
+        const existingUser = JSON.parse(userRaw);
+        return new Response(JSON.stringify({
+          success: true,
+          isNew: false,
+          userId: existingUserId,
+          user: existingUser
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
     // ===== مستخدم جديد =====
+    // توليد userId فريد
+    const userId = 'usr_' + await generateRandomString(24);
+
     const userData = {
-      phone: phone,
-      name: name,
-      city: city || '',
-      registeredAt: new Date().toISOString()
+      userId: userId,
+      phone: cleanPhone,
+      name: String(name).trim().substring(0, 50),
+      city: String(city || '').trim().substring(0, 30),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
-    // حفظ المستخدم
+    // حفظ المستخدم في KV
+    const userKey = `user:${userId}`;
     await env.VIEWS_KV.put(userKey, JSON.stringify(userData), {
       expirationTtl: 60 * 60 * 24 * 365 * 5 // 5 سنوات
     });
 
-    // ===== تحديث عدّاد المستخدمين =====
+    // ربط الرقم بالـ userId (للدخول)
+    await env.VIEWS_KV.put(phoneLookupKey, userId, {
+      expirationTtl: 60 * 60 * 24 * 365 * 5
+    });
+
+    // تحديث عدّاد المستخدمين
     const totalUsersKey = 'stats:total_users';
     const totalUsersRaw = await env.VIEWS_KV.get(totalUsersKey);
     const totalUsers = (parseInt(totalUsersRaw) || 0) + 1;
@@ -94,7 +119,8 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({
       success: true,
       isNew: true,
-      registeredAt: userData.registeredAt
+      userId: userId,
+      user: userData
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -111,11 +137,16 @@ export async function onRequest(context) {
   }
 }
 
-/* ===== Hash ===== */
-async function hashString(str) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str + 'kulshi_users_salt_2026');
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
+/* ===== توليد سلسلة عشوائية ===== */
+async function generateRandomString(length) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  const randomValues = new Uint8Array(length);
+  crypto.getRandomValues(randomValues);
+  
+  for (let i = 0; i < length; i++) {
+    result += chars[randomValues[i] % chars.length];
+  }
+  
+  return result;
 }
