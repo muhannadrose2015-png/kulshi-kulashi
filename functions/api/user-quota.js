@@ -1,6 +1,6 @@
 /* ==========================================
-   Cloudflare Function - إدارة الحد الأسبوعي والنقاط
-   المسار: /api/user-quota?phone=xxx
+   Cloudflare Function - إدارة الحد الأسبوعي
+   المسار: /api/user-quota?userId=xxx
    ========================================== */
 
 export async function onRequest(context) {
@@ -28,27 +28,25 @@ export async function onRequest(context) {
     }
 
     const url = new URL(request.url);
-    const phone = url.searchParams.get('phone');
+    const userId = url.searchParams.get('userId');
 
-    if (!phone) {
+    if (!userId) {
       return new Response(JSON.stringify({
         success: false,
-        error: 'رقم الهاتف مفقود'
+        error: 'userId مفقود'
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Hash للهاتف
-    const phoneHash = await hashString(phone);
-    const quotaKey = `quota:${phoneHash}`;
-    const premiumKey = `premium:${phoneHash}`;
+    const quotaKey = `quota:${userId}`;
+    const premiumKey = `premium:${userId}`;
 
-    // حساب بداية الأسبوع (الأحد 00:00 بتوقيت بغداد)
+    // حساب بداية الأسبوع
     const { weekStart, weekEnd } = getWeekRange();
 
-    // جلب بيانات الحصة
+    // جلب الحصة
     const quotaRaw = await env.VIEWS_KV.get(quotaKey);
     let quota = quotaRaw ? JSON.parse(quotaRaw) : null;
 
@@ -60,11 +58,11 @@ export async function onRequest(context) {
         updatedAt: new Date().toISOString()
       };
       await env.VIEWS_KV.put(quotaKey, JSON.stringify(quota), {
-        expirationTtl: 60 * 60 * 24 * 30 // 30 يوماً
+        expirationTtl: 60 * 60 * 24 * 30
       });
     }
 
-    // جلب حالة الاشتراك المدفوع
+    // جلب حالة الاشتراك
     const premiumRaw = await env.VIEWS_KV.get(premiumKey);
     let premium = null;
     if (premiumRaw) {
@@ -73,22 +71,43 @@ export async function onRequest(context) {
         if (p.until && new Date(p.until) > new Date()) {
           premium = p;
         } else {
-          // انتهى الاشتراك → نحذفه
           await env.VIEWS_KV.delete(premiumKey);
         }
       } catch (e) {}
     }
 
     const isPremium = !!premium;
-    const limit = isPremium ? null : 7; // null = بلا حدود
+
+    // جلب حد النشر من الإعدادات
+    let weeklyLimit = 7;
+    try {
+      const settingsFile = `https://api.github.com/repos/${env.GITHUB_REPO}/contents/data/settings.json`;
+      const settingsRes = await fetch(settingsFile, {
+        headers: {
+          'Authorization': `token ${env.GITHUB_TOKEN}`,
+          'User-Agent': 'Kulshi-Kulashi',
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+
+      if (settingsRes.ok) {
+        const settingsData = await settingsRes.json();
+        const settings = JSON.parse(
+          decodeURIComponent(escape(atob(settingsData.content.replace(/\n/g, ''))))
+        );
+        if (settings.weeklyLimit) weeklyLimit = Number(settings.weeklyLimit);
+      }
+    } catch (e) {
+      console.error('Settings read error:', e);
+    }
 
     return new Response(JSON.stringify({
       success: true,
       weekStart: weekStart,
       weekEnd: weekEnd,
       used: quota.count,
-      limit: limit,
-      remaining: isPremium ? 'unlimited' : Math.max(0, 7 - quota.count),
+      limit: isPremium ? null : weeklyLimit,
+      remaining: isPremium ? 'unlimited' : Math.max(0, weeklyLimit - quota.count),
       isPremium: isPremium,
       premiumUntil: premium ? premium.until : null
     }), {
@@ -109,45 +128,30 @@ export async function onRequest(context) {
 
 /* ===== حساب بداية ونهاية الأسبوع ===== */
 function getWeekRange() {
-  // الوقت بتوقيت بغداد (UTC+3)
   const now = new Date();
-  const baghdadOffset = 3 * 60; // دقائق
+  const baghdadOffset = 3 * 60;
   const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
   const baghdadMinutes = utcMinutes + baghdadOffset;
   const dayOffset = Math.floor(baghdadMinutes / (24 * 60));
 
-  // تاريخ بغداد
   const baghdadDate = new Date(now);
   baghdadDate.setUTCMinutes(baghdadDate.getUTCMinutes() + baghdadOffset);
 
-  const dayOfWeek = baghdadDate.getUTCDay(); // 0=أحد، 6=سبت
+  const dayOfWeek = baghdadDate.getUTCDay();
 
-  // بداية الأسبوع = الأحد الماضي
   const start = new Date(baghdadDate);
   start.setUTCDate(start.getUTCDate() - dayOfWeek);
   start.setUTCHours(0, 0, 0, 0);
 
-  // نهاية الأسبوع = السبت القادم
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 6);
   end.setUTCHours(23, 59, 59, 999);
 
-  // تحويل للـ UTC للحفظ
   start.setUTCMinutes(start.getUTCMinutes() - baghdadOffset);
   end.setUTCMinutes(end.getUTCMinutes() - baghdadOffset);
 
-  // صيغة التاريخ: YYYY-MM-DD
   const weekStart = start.toISOString().split('T')[0];
   const weekEnd = end.toISOString().split('T')[0];
 
   return { weekStart, weekEnd };
-}
-
-/* ===== Hash ===== */
-async function hashString(str) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(str + 'kulshi_quota_salt_2026');
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.slice(0, 12).map(b => b.toString(16).padStart(2, '0')).join('');
 }
