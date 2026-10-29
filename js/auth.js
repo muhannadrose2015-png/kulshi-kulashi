@@ -1,13 +1,14 @@
 /* ==========================================
-   auth.js - نظام المستخدم المبسط + التصفح كزائر
+   auth.js - نظام المستخدم (userId + Server)
    ========================================== */
 
 const Auth = {
 
   /* هل المستخدم مسجل؟ */
   isRegistered() {
+    const userId = KK.getUserId();
     const user = KK.getUser();
-    return !!(user && user.name && user.phone);
+    return !!(userId && user && user.name && user.phone);
   },
 
   /* الحصول على المستخدم الحالي */
@@ -15,57 +16,97 @@ const Auth = {
     return KK.getUser();
   },
 
-  /* ===== للتصفح الحر (بدون طلب تسجيل) ===== */
-  browseAsGuest() {
-    // لا نفعل شيئاً - المستخدم يتصفح بحرية
-    // اسمه في الهيدر يظهر "زائر"
+  /* معرّف المستخدم */
+  getUserId() {
+    return KK.getUserId();
   },
 
-  /* ===== طلب التسجيل فقط عند الحاجة ===== */
-  async requireRegistration() {
-    // إذا كان مسجلاً → لا نفعل شيئاً
-    if (this.isRegistered()) {
-      return this.getCurrentUser();
+  /* ===== الدخول/التسجيل ===== */
+  async loginOrRegister(phone, name, city) {
+    try {
+      const response = await fetch('/api/register-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, name, city })
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'فشل التسجيل');
+      }
+
+      // حفظ userId + بيانات المستخدم
+      KK.setUser(data.user);
+      KK.setUserId(data.userId);
+
+      return {
+        success: true,
+        isNew: data.isNew,
+        user: data.user,
+        userId: data.userId
+      };
+    } catch (e) {
+      console.error('Login error:', e);
+      return {
+        success: false,
+        error: e.message
+      };
+    }
+  },
+
+  /* ===== فحص حالة الحساب ===== */
+  async checkAccountStatus() {
+    const userId = KK.getUserId();
+
+    if (!userId) {
+      return { loggedIn: false };
     }
 
-    // إذا كان زائراً → نعرض النافذة
-    return new Promise((resolve) => {
-      this.showRegisterModal(resolve);
-    });
+    // جلب بيانات محدثة من السيرفر
+    const user = await KK.fetchUserFromServer(userId);
+
+    if (!user) {
+      // الحساب محذوف أو خطأ
+      KK.clearUserId();
+      return { loggedIn: false, error: 'الحساب غير موجود' };
+    }
+
+    return { loggedIn: true, user };
   },
 
-  /* عرض نافذة التسجيل */
-  showRegisterModal(onComplete) {
-    const existing = document.getElementById('registerModal');
+  /* ===== عرض نافذة التسجيل/الدخول ===== */
+  showAuthModal(onComplete) {
+    const existing = document.getElementById('authModal');
     if (existing) existing.remove();
 
     const modal = document.createElement('div');
-    modal.id = 'registerModal';
+    modal.id = 'authModal';
     modal.className = 'modal-overlay';
     modal.innerHTML = `
       <div class="modal-box">
         <div class="modal-title">👋 مرحباً بك في كلشي كلاشي</div>
         <div class="modal-subtitle">
-          أدخل بياناتك للاستمرار<br>
-          <span style="font-size:11px;color:#999;">تُحفظ على جهازك فقط</span>
+          أدخل بياناتك للبدء<br>
+          <span style="font-size:11px;color:#999;">يمكنك العودة لحسابك من أي جهاز بنفس الرقم</span>
         </div>
-        <form id="registerForm">
+        <form id="authForm">
           <label>الاسم الكامل *</label>
-          <input type="text" id="regName" placeholder="مثال: علي محمد" required maxlength="50">
+          <input type="text" id="authName" placeholder="مثال: علي محمد" required maxlength="50">
 
           <label>رقم الهاتف *</label>
-          <input type="tel" id="regPhone" placeholder="07XXXXXXXXX" required maxlength="15">
+          <input type="tel" id="authPhone" placeholder="07XXXXXXXXX" required maxlength="15">
 
           <label>المدينة (اختياري)</label>
-          <input type="text" id="regCity" placeholder="مثال: بغداد" maxlength="30">
+          <input type="text" id="authCity" placeholder="مثال: بغداد" maxlength="30">
 
-          <p id="regError" style="color:#d32f2f;font-size:13px;margin-top:10px;min-height:18px;"></p>
+          <p id="authError" style="color:#d32f2f;font-size:13px;margin-top:10px;min-height:18px;"></p>
 
           <button type="submit" class="btn btn-primary btn-full" style="margin-top:15px;">
-            ✅ تسجيل ومتابعة
+            ✅ تسجيل الدخول / التسجيل
           </button>
 
-          <button type="button" class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="document.getElementById('registerModal').remove();">
+          <button type="button" class="btn btn-secondary btn-full" style="margin-top:8px;" onclick="document.getElementById('authModal').remove();">
             تصفح بدون تسجيل
           </button>
         </form>
@@ -74,80 +115,83 @@ const Auth = {
 
     document.body.appendChild(modal);
 
-    const form = document.getElementById('registerForm');
-    form.addEventListener('submit', (e) => {
+    const form = document.getElementById('authForm');
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      this.submitRegistration(onComplete);
+      await this.submitAuth(onComplete);
     });
 
-    setTimeout(() => document.getElementById('regName').focus(), 100);
+    setTimeout(() => document.getElementById('authName').focus(), 100);
   },
 
-  /* إرسال بيانات التسجيل */
-  submitRegistration(onComplete) {
-  const name = document.getElementById('regName').value.trim();
-  const phone = document.getElementById('regPhone').value.trim();
-  const city = document.getElementById('regCity').value.trim();
-  const errorEl = document.getElementById('regError');
+  /* ===== إرسال بيانات التسجيل ===== */
+  async submitAuth(onComplete) {
+    const name = document.getElementById('authName').value.trim();
+    const phone = document.getElementById('authPhone').value.trim();
+    const city = document.getElementById('authCity').value.trim();
+    const errorEl = document.getElementById('authError');
+    const submitBtn = document.querySelector('#authForm button[type="submit"]');
 
-  errorEl.textContent = '';
+    errorEl.textContent = '';
 
-  if (name.length < 2) {
-    errorEl.textContent = '❌ الاسم قصير جداً';
-    return;
-  }
+    if (name.length < 2) {
+      errorEl.textContent = '❌ الاسم قصير جداً';
+      return;
+    }
 
-  const cleanPhone = phone.replace(/[^0-9]/g, '');
-  if (cleanPhone.length < 10 || cleanPhone.length > 13) {
-    errorEl.textContent = '❌ رقم الهاتف غير صحيح';
-    return;
-  }
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.length < 10 || cleanPhone.length > 13) {
+      errorEl.textContent = '❌ رقم الهاتف غير صحيح';
+      return;
+    }
 
-  if (window.Ban && Ban.isBanned(name, phone)) {
-    errorEl.textContent = '🚫 أنت محظور من استخدام الموقع';
-    setTimeout(() => {
-      window.location.href = '/banned.html';
-    }, 1500);
-    return;
-  }
+    // فحص الحظر
+    if (window.Ban && Ban.isBanned(name, phone)) {
+      errorEl.textContent = '🚫 أنت محظور من استخدام الموقع';
+      setTimeout(() => {
+        window.location.href = '/banned.html';
+      }, 1500);
+      return;
+    }
 
-  const user = {
-    name: name,
-    phone: cleanPhone,
-    city: city || '',
-    joinedAt: new Date().toISOString()
-  };
+    // تعطيل الزر
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ جارٍ الدخول...';
+    }
 
-  if (KK.setUser(user)) {
-    document.getElementById('registerModal').remove();
-    App.toast('✅ تم التسجيل بنجاح', 'success');
+    const result = await this.loginOrRegister(cleanPhone, name, city);
 
-    // ===== تسجيل المستخدم في السيرفر (للإحصائيات) =====
-    this.registerOnServer(cleanPhone, name, city);
+    if (result.success) {
+      document.getElementById('authModal').remove();
+      App.toast(result.isNew ? '✅ مرحباً بك!' : '✅ تم الدخول لحسابك', 'success');
 
-    if (typeof onComplete === 'function') onComplete(user);
-  } else {
-    errorEl.textContent = '❌ فشل الحفظ. تأكد من تفعيل التخزين في المتصفح';
-  }
-},
+      if (typeof onComplete === 'function') {
+        onComplete(result.user);
+      } else {
+        location.reload();
+      }
+    } else {
+      errorEl.textContent = '❌ ' + result.error;
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '✅ تسجيل الدخول / التسجيل';
+      }
+    }
+  },
 
-/* تسجيل المستخدم في السيرفر */
-async registerOnServer(phone, name, city) {
-  try {
-    const response = await fetch('/api/register-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, name, city })
+  /* ===== طلب التسجيل إذا لم يكن مسجلاً ===== */
+  async requireRegistration() {
+    if (this.isRegistered()) {
+      return this.getCurrentUser();
+    }
+
+    return new Promise((resolve) => {
+      this.showAuthModal(resolve);
     });
-    const data = await response.json();
-    console.log('User registered:', data);
-  } catch (e) {
-    console.error('Register on server failed:', e);
-    // لا نوقف التسجيل إذا فشل السيرفر
-  }
-},
+  },
 
-  /* ===== عرض اسم المستخدم في الهيدر ===== */
+  /* ===== عرض بيانات المستخدم في الهيدر ===== */
   renderUserHeader() {
     const user = this.getCurrentUser();
     const el = document.getElementById('headerUser');
@@ -156,23 +200,42 @@ async registerOnServer(phone, name, city) {
     if (user && user.name) {
       el.innerHTML = `👤 <strong>${App.escapeHTML(user.name)}</strong>`;
     } else {
-      // زائر
-      el.innerHTML = `<a href="#" onclick="Auth.showRegisterModal(() => location.reload()); return false;" style="color:#ff9900;text-decoration:none;">تسجيل الدخول</a>`;
+      el.innerHTML = `<a href="#" onclick="Auth.showAuthModal(); return false;" style="color:#ff9900;text-decoration:none;">تسجيل الدخول</a>`;
     }
   },
 
-  /* تحديث بيانات المستخدم */
-  updateUser(updates) {
-    const user = this.getCurrentUser();
-    if (!user) return false;
-    const updated = { ...user, ...updates };
-    return KK.setUser(updated);
+  /* ===== تحديث بيانات المستخدم ===== */
+  async updateUser(updates) {
+    const userId = KK.getUserId();
+    if (!userId) return false;
+
+    try {
+      const response = await fetch('/api/update-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId,
+          ...updates
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.user) {
+        KK.setUser(data.user);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('Update user error:', e);
+      return false;
+    }
   },
 
-  /* تسجيل خروج */
+  /* ===== تسجيل خروج ===== */
   logout() {
-    if (confirm('هل تريد تسجيل الخروج؟ ستحتاج لإدخال بياناتك مرة أخرى.')) {
-      KK.clearUser();
+    if (confirm('هل تريد تسجيل الخروج؟ يمكنك العودة برقم هاتفك.')) {
+      KK.clearUserId();
       location.reload();
     }
   }
