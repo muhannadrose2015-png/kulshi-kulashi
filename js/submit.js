@@ -18,7 +18,7 @@ const Submit = {
     const title = document.getElementById('adTitle').value.trim();
     const category = document.getElementById('adCategory').value;
     const priceInput = document.getElementById('adPrice');
-const price = (priceInput.dataset.rawValue || priceInput.value.replace(/[^\d]/g, '')).trim();
+    const price = (priceInput.dataset.rawValue || priceInput.value.replace(/[^\d]/g, '')).trim();
     const currency = document.getElementById('adCurrency').value;
     const whatsapp = document.getElementById('adWhatsapp').value.trim();
     const city = document.getElementById('adCity').value.trim();
@@ -43,7 +43,8 @@ const price = (priceInput.dataset.rawValue || priceInput.value.replace(/[^\d]/g,
 
     // ===== فحص المستخدم =====
     const user = KK.getUser();
-    if (!user) return this.showError('يجب تسجيل الدخول أولاً');
+    const userId = KK.getUserId();
+    if (!user || !userId) return this.showError('يجب تسجيل الدخول أولاً');
 
     // ===== فحص عدد الصور =====
     if (Uploader.count() === 0) return this.showError('أضف صورة واحدة على الأقل');
@@ -54,7 +55,7 @@ const price = (priceInput.dataset.rawValue || priceInput.value.replace(/[^\d]/g,
 
     try {
       /* ===== المرحلة 1: فحص الحد الأسبوعي ===== */
-      const quotaCheck = await this.checkQuota(user.phone);
+      const quotaCheck = await this.checkQuota(userId);
 
       if (!quotaCheck.success) {
         throw new Error(quotaCheck.error || 'فشل فحص الحد');
@@ -82,21 +83,21 @@ const price = (priceInput.dataset.rawValue || priceInput.value.replace(/[^\d]/g,
       const categoryName = await Products.getCategoryName(category);
 
       const adData = {
-  orderCode: orderCode,
-  userId: KK.getUserId(),           // ← جديد
-  ownerName: user.name,
-  ownerPhone: user.phone,
-  whatsapp: cleanWhatsapp,
-  city: city,
-  category: category,
-  categoryName: categoryName,
-  title: title,
-  price: Number(price),
-  currency: currency,
-  description: description,
-  images: imageUrls,
-  isFeatured: false
-};
+        orderCode: orderCode,
+        userId: userId,
+        ownerName: user.name,
+        ownerPhone: user.phone,
+        whatsapp: cleanWhatsapp,
+        city: city,
+        category: category,
+        categoryName: categoryName,
+        title: title,
+        price: Number(price),
+        currency: currency,
+        description: description,
+        images: imageUrls,
+        isFeatured: false
+      };
 
       /* ===== المرحلة 5: الإرسال إلى تليجرام ===== */
       btn.textContent = '⏳ جارٍ الإرسال...';
@@ -116,7 +117,7 @@ const price = (priceInput.dataset.rawValue || priceInput.value.replace(/[^\d]/g,
       }
 
       /* ===== المرحلة 6: استهلاك نقطة من الحد ===== */
-      await this.consumeQuota(user.phone, orderCode);
+      await this.consumeQuota(userId, orderCode);
 
       /* ===== المرحلة 7: حفظ الطلب محلياً ===== */
       KK.addMyOrder({
@@ -146,25 +147,25 @@ const price = (priceInput.dataset.rawValue || priceInput.value.replace(/[^\d]/g,
   },
 
   /* فحص الحد الأسبوعي */
-  async checkQuota(phone) {
+  async checkQuota(userId) {
     try {
-      const response = await fetch('/api/user-quota?phone=' + encodeURIComponent(phone));
+      const response = await fetch('/api/user-quota?userId=' + encodeURIComponent(userId));
       const data = await response.json();
       return data;
     } catch (e) {
       console.error('Quota check error:', e);
-      // إذا فشل الفحص → نسمح بالمرور (تجربة أفضل)
+      // إذا فشل الفحص → نسمح بالمرور
       return { success: true, remaining: 999, used: 0, limit: 7, isPremium: false };
     }
   },
 
   /* استهلاك نقطة */
-  async consumeQuota(phone, orderCode) {
+  async consumeQuota(userId, orderCode) {
     try {
       const response = await fetch('/api/consume-quota', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, orderCode })
+        body: JSON.stringify({ userId, orderCode })
       });
       const data = await response.json();
       return data;
@@ -308,6 +309,7 @@ const price = (priceInput.dataset.rawValue || priceInput.value.replace(/[^\d]/g,
             productTitle: order.title,
             ownerName: user ? user.name : '',
             ownerPhone: user ? user.phone : '',
+            userId: KK.getUserId(),
             status: order.status,
             reason: order.status === 'approved' ? 'إعلان منشور - يحتاج حذف من ads.json' : 'إعلان قيد المراجعة'
           }
@@ -352,6 +354,7 @@ const price = (priceInput.dataset.rawValue || priceInput.value.replace(/[^\d]/g,
             productTitle: productTitle,
             ownerName: user.name,
             ownerPhone: user.phone,
+            userId: KK.getUserId(),
             reason: reason || ''
           }
         })
