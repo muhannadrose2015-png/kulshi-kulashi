@@ -1,10 +1,10 @@
 /* ==========================================
-   settings.js - إدارة بيانات المستخدم
+   settings.js - إدارة بيانات المستخدم (userId)
    ========================================== */
 
 const Settings = {
 
-  /* عرض قسم معلومات المستخدم في أعلى الصفحة */
+  /* عرض قسم معلومات المستخدم */
   renderUserBox(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -32,7 +32,7 @@ const Settings = {
     `;
   },
 
-  /* فتح نافذة تعديل البيانات */
+  /* فتح نافذة التعديل */
   openEditDialog() {
     const user = KK.getUser();
     if (!user) return;
@@ -75,8 +75,8 @@ const Settings = {
     document.body.appendChild(modal);
   },
 
-  /* حفظ التعديلات */
-  saveChanges() {
+  /* حفظ التعديلات (عبر السيرفر) */
+  async saveChanges() {
     const name = document.getElementById('settingsName').value.trim();
     const phone = document.getElementById('settingsPhone').value.trim().replace(/[^0-9]/g, '');
     const city = document.getElementById('settingsCity').value.trim();
@@ -84,7 +84,6 @@ const Settings = {
 
     errorEl.textContent = '';
 
-    // التحقق
     if (name.length < 2) {
       errorEl.textContent = '❌ الاسم قصير جداً';
       return;
@@ -100,36 +99,27 @@ const Settings = {
       return;
     }
 
-    const oldUser = KK.getUser();
-    const phoneChanged = oldUser && oldUser.phone !== phone;
+    // تعطيل الزر
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = '⏳ جارٍ الحفظ...';
 
-    // حفظ التعديلات
-    const updated = {
-      ...oldUser,
+    const success = await Auth.updateUser({
       name: name,
       phone: phone,
-      city: city || '',
-      updatedAt: new Date().toISOString()
-    };
+      city: city
+    });
 
-    if (KK.setUser(updated)) {
-      // إغلاق النافذة
+    if (success) {
       document.querySelector('.modal-overlay')?.remove();
-
       App.toast('✅ تم حفظ التعديلات', 'success');
 
-      // إعادة عرض القسم
       this.renderUserBox('userSettingsBox');
       Auth.renderUserHeader();
-
-      // تنبيه إذا تغير الرقم
-      if (phoneChanged) {
-        setTimeout(() => {
-          App.toast('📱 تم تغيير رقمك - قد تحتاج لإعادة التقييمات', 'info');
-        }, 2000);
-      }
     } else {
       errorEl.textContent = '❌ فشل الحفظ';
+      btn.disabled = false;
+      btn.textContent = '💾 حفظ التعديلات';
     }
   }
 };
