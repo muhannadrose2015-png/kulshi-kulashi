@@ -1,35 +1,107 @@
-/* storage.js - إدارة التخزين المحلي */
+/* ==========================================
+   storage.js - إدارة التخزين المحلي (نسخة userId)
+   ========================================== */
 
 const KK = {
   KEYS: {
-    USER: 'kk_user',
+    USER_ID: 'kk_user_id',           // ← الجديد: معرّف المستخدم
+    USER_CACHE: 'kk_user_cache',     // ← نسخة مخزّنة من بيانات المستخدم
     MY_ORDERS: 'kk_my_orders',
     CACHED_ADS: 'kk_cached_ads',
     SETTINGS: 'kk_settings',
     LOGIN_ATTEMPTS: 'kk_login_attempts'
   },
 
+  /* ===== معرّف المستخدم ===== */
+  getUserId() {
+    try {
+      return localStorage.getItem(this.KEYS.USER_ID);
+    } catch (e) {
+      return null;
+    }
+  },
+
+  setUserId(userId) {
+    try {
+      localStorage.setItem(this.KEYS.USER_ID, userId);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  clearUserId() {
+    localStorage.removeItem(this.KEYS.USER_ID);
+    localStorage.removeItem(this.KEYS.USER_CACHE);
+  },
+
+  /* ===== بيانات المستخدم (cache) ===== */
   getUser() {
     try {
-      const data = localStorage.getItem(this.KEYS.USER);
+      const data = localStorage.getItem(this.KEYS.USER_CACHE);
       return data ? JSON.parse(data) : null;
-    } catch (e) { return null; }
+    } catch (e) {
+      return null;
+    }
   },
 
   setUser(user) {
     try {
-      localStorage.setItem(this.KEYS.USER, JSON.stringify(user));
+      // نُخزّن userId + بيانات المستخدم
+      if (user && user.userId) {
+        localStorage.setItem(this.KEYS.USER_ID, user.userId);
+      }
+      localStorage.setItem(this.KEYS.USER_CACHE, JSON.stringify(user));
       return true;
-    } catch (e) { return false; }
+    } catch (e) {
+      return false;
+    }
   },
 
-  clearUser() { localStorage.removeItem(this.KEYS.USER); },
+  clearUser() {
+    this.clearUserId();
+  },
 
+  /* ===== جلب بيانات المستخدم من السيرفر ===== */
+  async fetchUserFromServer(userId) {
+    if (!userId) return null;
+
+    try {
+      const response = await fetch(`/api/get-user?userId=${encodeURIComponent(userId)}`);
+      const data = await response.json();
+
+      if (data.success && data.user) {
+        // حفظ نسخة محلية
+        this.setUser(data.user);
+        return data.user;
+      }
+      return null;
+    } catch (e) {
+      console.error('Fetch user error:', e);
+      return null;
+    }
+  },
+
+  /* ===== مزامنة بيانات المستخدم ===== */
+  async syncUser() {
+    const userId = this.getUserId();
+    if (!userId) return null;
+
+    const user = await this.fetchUserFromServer(userId);
+    if (user) {
+      this.setUser(user);
+    }
+    return user;
+  },
+
+  /* ===== طلباتي ===== */
   getMyOrders() {
     try {
       const data = localStorage.getItem(this.KEYS.MY_ORDERS);
       return data ? JSON.parse(data) : [];
-    } catch (e) { return []; }
+    } catch (e) {
+      return [];
+    }
   },
 
   addMyOrder(order) {
@@ -50,19 +122,25 @@ const KK = {
     return false;
   },
 
-  clearMyOrders() { localStorage.removeItem(this.KEYS.MY_ORDERS); },
+  clearMyOrders() {
+    localStorage.removeItem(this.KEYS.MY_ORDERS);
+  },
 
+  /* ===== الإعلانات المؤقتة ===== */
   getCachedAds() {
     try {
       const data = localStorage.getItem(this.KEYS.CACHED_ADS);
       return data ? JSON.parse(data) : [];
-    } catch (e) { return []; }
+    } catch (e) {
+      return [];
+    }
   },
 
   setCachedAds(ads) {
     localStorage.setItem(this.KEYS.CACHED_ADS, JSON.stringify(ads));
   },
 
+  /* ===== الإعدادات ===== */
   getSettings() {
     try {
       const data = localStorage.getItem(this.KEYS.SETTINGS);
@@ -76,6 +154,7 @@ const KK = {
     localStorage.setItem(this.KEYS.SETTINGS, JSON.stringify(settings));
   },
 
+  /* ===== محاولات تسجيل الدخول ===== */
   getLoginAttempts() {
     try {
       const data = localStorage.getItem(this.KEYS.LOGIN_ATTEMPTS);
@@ -94,7 +173,9 @@ const KK = {
     localStorage.setItem(this.KEYS.LOGIN_ATTEMPTS, JSON.stringify(attempts));
   },
 
-  resetLoginAttempts() { localStorage.removeItem(this.KEYS.LOGIN_ATTEMPTS); },
+  resetLoginAttempts() {
+    localStorage.removeItem(this.KEYS.LOGIN_ATTEMPTS);
+  },
 
   isLocked() {
     const attempts = this.getLoginAttempts();
@@ -106,6 +187,7 @@ const KK = {
     return true;
   },
 
+  /* ===== أدوات عامة ===== */
   clearAll() {
     Object.values(this.KEYS).forEach(key => localStorage.removeItem(key));
   },
