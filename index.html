@@ -242,12 +242,17 @@ async function forceUpdate() {
     console.error('Ban check failed:', e);
   }
 
-  // 2. عرض بيانات المستخدم
-  try {
-    Auth.renderUserHeader();
-  } catch (e) {
-    console.error('Auth header failed:', e);
+// 2. عرض بيانات المستخدم (مع مزامنة)
+try {
+  const userId = KK.getUserId();
+  if (userId) {
+    // مسجل → جلب بيانات محدثة
+    await KK.syncUser();
   }
+  Auth.renderUserHeader();
+} catch (e) {
+  console.error('Auth header failed:', e);
+}
 
   // 3. تحديث عدّاد المفضلة
   try {
