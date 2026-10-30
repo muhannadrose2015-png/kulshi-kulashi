@@ -191,18 +191,27 @@ const Auth = {
     });
   },
 
-  /* ===== عرض بيانات المستخدم في الهيدر ===== */
-  renderUserHeader() {
-    const user = this.getCurrentUser();
-    const el = document.getElementById('headerUser');
-    if (!el) return;
+renderUserHeader() {
+  const user = this.getCurrentUser();
+  const el = document.getElementById('headerUser');
+  if (!el) return;
 
-    if (user && user.name) {
-      el.innerHTML = `👤 <strong>${App.escapeHTML(user.name)}</strong>`;
-    } else {
-      el.innerHTML = `<a href="#" onclick="Auth.showAuthModal(); return false;" style="color:#ff9900;text-decoration:none;">تسجيل الدخول</a>`;
-    }
-  },
+  if (user && user.name) {
+    // مسجل → اسم + زر خروج (عند الضغط)
+    el.innerHTML = `
+      <a href="/my-ads.html" style="color:inherit;text-decoration:none;">
+        👤 <strong>${App.escapeHTML(user.name)}</strong>
+      </a>
+    `;
+  } else {
+    // غير مسجل → زر "دخول"
+    el.innerHTML = `
+      <a href="#" onclick="Auth.showAuthModal(); return false;" style="color:#ff9900;text-decoration:none;font-weight:bold;background:rgba(255,153,0,0.15);padding:6px 12px;border-radius:6px;">
+        🔑 دخول
+      </a>
+    `;
+  }
+},
 
   /* ===== تحديث بيانات المستخدم ===== */
   async updateUser(updates) {
