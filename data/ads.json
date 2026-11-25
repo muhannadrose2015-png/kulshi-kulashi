@@ -1148,5 +1148,32 @@
     "isFeatured": false,
     "createdAt": "2026-10-29T06:50:52.193Z",
     "publishedAt": "2026-10-29T06:50:52.193Z"
+  },
+  {
+    "id": "ad_1795632910358_574",
+    "orderCode": "KK-2026-2993",
+    "userId": "usr_h61we9jfdf53lifo2rmvaflo",
+    "title": "دراجه",
+    "category": "cars",
+    "price": 450,
+    "currency": "IQD",
+    "description": "سلام عليكم اخوان..\nدراجه هارلي للبيع..\nدراجه نضيفه مثل الي بالصوره .\nلايتات شغاله هورن شغال كهربائيات كامله ماعده الاشاير \n\nطبعا دبل سويج وبصمه وحده .\nبطاريات نضيفات وعل الفحص . \n\nوبيه الويل الخلفي بالقبغ فطر خفيف مثل الصوره الموضحه .\n\nوالسعر 450الف وبيه مجال بسيط .\nالموشراي ليدخل رجاء.\n\nللتواصل عل هذا الرقم بيه بس واتساب07760369123\nمكاني الفلوجه الجغيفي الثانيه .",
+    "images": [
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1795631552570_7157.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1795631555288_1737.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1795631557663_1241.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1795631561973_990.jpg",
+      "https://raw.githubusercontent.com/muhannadrose2015-png/kulshi-kulashi/main/images/img_1795631563979_9624.jpg"
+    ],
+    "city": "فلوجه",
+    "whatsapp": "07760369123",
+    "ownerName": "صهيب جمال",
+    "ownerPhone": "07760369123",
+    "status": "active",
+    "sold": false,
+    "views": 0,
+    "createdAt": "2026-11-25T18:55:10.358Z",
+    "publishedAt": "2026-11-25T18:55:10.358Z",
+    "autoPublished": true
   }
 ]
